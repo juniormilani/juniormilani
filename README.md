@@ -8,7 +8,10 @@ Analista de Mídia Paga com 7+ anos de experiência em Google Ads, Meta Ads e GA
 
 <br>
 
-<a href="https://github.com/juniormilani"><img height="160" src="https://github-readme-stats.vercel.app/api/top-langs/?username=juniormilani&layout=compact&hide_border=true&theme=dark&langs_count=6"/></a> <a href="https://github.com/juniormilani"><img height="160" src="https://github-readme-stats.vercel.app/api?username=juniormilani&show_icons=true&hide_border=true&theme=dark&hide=issues&count_private=true&hide_title=true"/></a>
+<a href="https://github.com/juniormilani">
+  <img height="160em" src="https://github-readme-stats.vercel.app/api/top-langs/?username=juniormilani&layout=compact&hide_border=true&theme=dark&langs_count=6" />
+  <img height="160em" src="https://github-readme-stats.vercel.app/api?username=juniormilani&show_icons=true&hide_border=true&theme=dark&hide=issues&count_private=true&hide_title=true" />
+</a>
 
 <br>
 
@@ -26,4 +29,4 @@ Para saber mais, entre em contato:
 
 <br>
 
-[![Activity Graph](https://github-readme-activity-graph.vercel.app/graph?username=juniormilani&theme=react-dark&hide_border=true&area=true)](https://github.com/juniormilani)
+![Contribution Graph](https://ghchart.rshah.org/juniormilani)
