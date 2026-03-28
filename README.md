@@ -20,10 +20,10 @@ Analista de Mídia Paga com 7+ anos de experiência em Google Ads, Meta Ads e GA
 
 <br>
 
-Para saber mais, entre em contato:
+Para saber mais:
 
-[![LinkedIn](https://img.shields.io/badge/LINKEDIN-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com/in/juniormilani) [![Gmail](https://img.shields.io/badge/EMAIL-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:contato@drayek.com.br)
+[![LinkedIn](https://img.shields.io/badge/LINKEDIN-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com/in/juniormilani)
 
 <br>
 
-![Contribution Graph](https://ghchart.rshah.org/juniormilani)
+![Contribution Graph](https://ghchart.rshah.org/40c463/juniormilani)
