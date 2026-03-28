@@ -1,6 +1,10 @@
 # Júnior Milani
 
-Analista de Mídia Paga com 7+ anos de experiência em Google Ads, Meta Ads e GA4. Construo produtos SaaS na interseção entre marketing de performance e engenharia de produto — do banco de dados ao deploy.
+Trabalho na interseção entre **paid media operations** e **engenharia de produto** — uma combinação rara que me permite construir desde a estrutura de campanha até o pipeline de dados que a alimenta.
+
+No lado de mídia, gerencio contas em Google Ads, Meta Ads e GA4 para múltiplos clientes, com foco em arquitetura de campanhas, automação de relatórios via Make.com e N8N, rastreamento avançado com GTM e integrações via API. No lado de produto, construo SaaS com Next.js 14, TypeScript e Supabase — do schema do banco ao deploy em produção.
+
+Atualmente desenvolvendo o **PinhoSystem** (SaaS de gestão de frotas) e o **google-ads-mcp** (MCP Server para consultas GAQL via Claude Code).
 
 <br>
 
