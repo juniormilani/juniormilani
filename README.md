@@ -8,10 +8,6 @@ Analista de Mídia Paga com 7+ anos de experiência em Google Ads, Meta Ads e GA
 
 <br>
 
-[![Top Languages](https://github-readme-stats.vercel.app/api/top-langs/?username=juniormilani&layout=compact&hide_border=true&theme=dark&langs_count=6)](https://github.com/juniormilani) [![GitHub Stats](https://github-readme-stats.vercel.app/api?username=juniormilani&show_icons=true&hide_border=true&theme=dark&hide=issues&count_private=true&hide_title=true)](https://github.com/juniormilani)
-
-<br>
-
 ## Projetos
 
 **[google-ads-mcp](https://github.com/juniormilani/google-ads-mcp)** — MCP Server para consultas GAQL em contas Google Ads diretamente via Claude Code. Python.
