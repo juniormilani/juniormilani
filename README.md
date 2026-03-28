@@ -19,7 +19,3 @@ Analista de Mídia Paga com 7+ anos de experiência em Google Ads, Meta Ads e GA
 Para saber mais:
 
 [![LinkedIn](https://img.shields.io/badge/LINKEDIN-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com/in/juniormilani)
-
-<br>
-
-![Contribution Graph](https://ghchart.rshah.org/40c463/juniormilani)
