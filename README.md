@@ -1,6 +1,6 @@
 # Júnior Milani
 
-Trabalho na interseção entre **paid media operations** e **engenharia de produto** — uma combinação rara que me permite construir desde a estrutura de campanha até o pipeline de dados que a alimenta.
+Trabalho na interseção entre **paid media operations** e **engenharia de produto** — uma combinação que me permite construir desde a estrutura de campanha até o pipeline de dados que a alimenta.
 
 No lado de mídia, gerencio contas em Google Ads, Meta Ads e GA4 para múltiplos clientes, com foco em arquitetura de campanhas, automação de relatórios via Make.com e N8N, rastreamento avançado com GTM e integrações via API. No lado de produto, construo SaaS com Next.js 14, TypeScript e Supabase — do schema do banco ao deploy em produção.
 
