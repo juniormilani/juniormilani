@@ -1,4 +1,4 @@
-# 📊 Júnior Milani
+# Júnior Milani
 
 Analista de Mídia Paga com 7+ anos de experiência em Google Ads, Meta Ads e GA4. Construo produtos SaaS na interseção entre marketing de performance e engenharia de produto — do banco de dados ao deploy.
 
