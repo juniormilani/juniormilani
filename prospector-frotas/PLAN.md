@@ -216,7 +216,17 @@ inacessível; o compartilhamento Nextcloud citado (`index.php/s/...`) provavelme
 Parquet (4,99 milhões de estabelecimentos do RS, de 73,4 milhões). Pico de RAM: ~1,9 GB no `ingest` e ~1,5 GB no `filter` (~4 s).
 **75.896 leads** (69.515 empresas distintas).
 
-**Pontos para revisar no targets.yaml** (nada foi alterado):
+**Ajustes pós-revisão.**
+- MEI: exclusão confirmada (`include_mei: false`).
+- **Filtros do match secundário selecionáveis:** cada segmento aceita, opcionalmente, `match_secundario`
+  (padrão `true`) e `secundario_excluir_principais` (CNAEs principais a ignorar no match secundário). Na CLI,
+  `prospector filter --secundario seg1,seg2|todos|nenhum` sobrescreve o YAML naquela execução. Se o match
+  secundário de um segmento é desligado, o lead vai para o próximo segmento secundário permitido; só sai da lista
+  se nenhum restar. O relatório ganhou a coluna "sec. filtrados". Exemplo com o secundário desligado em
+  combustíveis, locadoras e ambulâncias: 69.423 leads, com 6.473 removidos, e 2.824 leads de combustíveis
+  passaram para transporte_carga.
+
+**Pontos que motivaram os filtros** (padrão atual: tudo ligado; sugestões comentadas no targets.yaml):
 - Casar pelo CNAE secundário traz ruído. Em `locadoras`, 4.072 dos 5.503 leads vieram só pelo secundário, e os
   principais maiores são revendas de automóveis. Em `combustiveis_perigosos`, 4.567 dos 5.756 são postos
   (4731800) e revendas de GLP. Em `ambulancias`, 658 dos 741 são hospitais e clínicas. O score da Fase 5 já

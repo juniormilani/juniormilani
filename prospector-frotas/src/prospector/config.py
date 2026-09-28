@@ -64,17 +64,25 @@ class _Strict(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+def _valida_cnaes(v: list[str]) -> list[str]:
+    ruins = [c for c in v if not CNAE_RE.match(str(c))]
+    if ruins:
+        raise ValueError(f"CNAE deve ter 7 dígitos sem pontuação (ex.: '4929902'); inválidos: {ruins}")
+    return [str(c) for c in v]
+
+
 class Segmento(_Strict):
     prioridade: int = Field(ge=1, le=3)
     cnaes: list[str] = Field(min_length=1)
+    # Aceitar estabelecimentos que têm o CNAE do segmento só como secundário.
+    match_secundario: bool = True
+    # No match secundário, ignorar estabelecimentos cujo CNAE principal esteja nesta lista.
+    secundario_excluir_principais: list[str] = Field(default_factory=list)
 
-    @field_validator("cnaes")
+    @field_validator("cnaes", "secundario_excluir_principais")
     @classmethod
     def _cnaes_validos(cls, v: list[str]) -> list[str]:
-        ruins = [c for c in v if not CNAE_RE.match(str(c))]
-        if ruins:
-            raise ValueError(f"CNAE deve ter 7 dígitos sem pontuação (ex.: '4929902'); inválidos: {ruins}")
-        return [str(c) for c in v]
+        return _valida_cnaes(v)
 
 
 class PlacesCfg(_Strict):
@@ -143,6 +151,27 @@ class Targets(_Strict):
                     raise ValueError(f"CNAE {c} aparece nos segmentos '{vistos[c]}' e '{nome}'")
                 vistos[c] = nome
         return self
+
+    def com_secundario(self, segmentos: list[str]) -> "Targets":
+        """Cópia em que só `segmentos` aceitam match secundário (sobrescreve o YAML).
+
+        Aceita também os valores especiais `todos` e `nenhum`.
+        """
+        nomes = {s.strip() for s in segmentos if s.strip()}
+        if nomes == {"todos"}:
+            ligados = set(self.segmentos)
+        elif nomes == {"nenhum"}:
+            ligados = set()
+        else:
+            desconhecidos = nomes - set(self.segmentos)
+            if desconhecidos:
+                raise ConfigError(
+                    f"Segmento(s) desconhecido(s) em --secundario: {sorted(desconhecidos)}. "
+                    f"Use 'todos', 'nenhum' ou: {', '.join(self.segmentos)}"
+                )
+            ligados = nomes
+        segs = {n: s.model_copy(update={"match_secundario": n in ligados}) for n, s in self.segmentos.items()}
+        return self.model_copy(update={"segmentos": segs})
 
     def cnae_map(self) -> dict[str, tuple[str, int]]:
         """CNAE -> (segmento, prioridade)."""

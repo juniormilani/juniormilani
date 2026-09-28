@@ -18,6 +18,15 @@ municipios_prioritarios: []
 #  - CAXIAS DO SUL
 
 # CNAEs-alvo agrupados por segmento. prioridade: 1 = mais quente.
+#
+# Filtros do match por CNAE secundário (opcionais em cada segmento):
+#   match_secundario: true|false
+#       aceita estabelecimentos que têm o CNAE do segmento só como secundário (padrão: true).
+#       Pode ser sobrescrito por execução: `prospector filter --secundario fretamento,transporte_carga`
+#       (ou `--secundario todos` / `--secundario nenhum`).
+#   secundario_excluir_principais: [CNAEs]
+#       no match secundário, ignora estabelecimentos cujo CNAE principal esteja nesta lista
+#       (ex.: revendas de veículos que declaram locação como secundário). O match principal não é afetado.
 segmentos:
   fretamento:
     prioridade: 1
@@ -25,6 +34,10 @@ segmentos:
   combustiveis_perigosos:
     prioridade: 1
     cnaes: ["4930203", "4681802"]   # produtos perigosos + TRR
+    match_secundario: true
+    secundario_excluir_principais: []
+    # Sugestão (postos de combustível, ~900 leads no RS em 2026-09):
+    # secundario_excluir_principais: ["4731800"]
   transporte_carga:
     prioridade: 2
     cnaes: ["4930201", "4930202", "4930204"]
@@ -43,9 +56,14 @@ segmentos:
   locadoras:
     prioridade: 3
     cnaes: ["7711000"]
+    match_secundario: true
+    secundario_excluir_principais: []
+    # Sugestão (revendas de veículos, ~1.450 leads no RS em 2026-09):
+    # secundario_excluir_principais: ["4511101", "4511102", "4512902"]
   ambulancias:
     prioridade: 3
     cnaes: ["8621601", "8621602"]
+    match_secundario: true   # a maioria dos matches secundários são hospitais e clínicas
 
 # Palavras-chave procuradas nos sites (case/acento-insensitive)
 keywords_site:

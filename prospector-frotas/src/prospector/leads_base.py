@@ -22,6 +22,8 @@ class LinhaRelatorio:
     secundario: int
     matrizes: int
     mei_excluidos: int
+    secundario_filtrados: int
+    match_secundario: bool
 
 
 def gerar_leads_base(con: duckdb.DuckDBPyConnection, parquet_dir: Path, targets: Targets) -> int:
@@ -32,9 +34,19 @@ def gerar_leads_base(con: duckdb.DuckDBPyConnection, parquet_dir: Path, targets:
         con.execute(f"CREATE OR REPLACE VIEW {t} AS SELECT * FROM read_parquet('{arq.as_posix()}')")
 
     ordem = {nome: i for i, nome in enumerate(targets.segmentos)}
-    alvo = [(c, seg, prio, ordem[seg]) for c, (seg, prio) in targets.cnae_map().items()]
-    con.execute("CREATE OR REPLACE TABLE alvo_cnae (cnae VARCHAR PRIMARY KEY, segmento VARCHAR, prioridade INT, ordem INT)")
-    con.executemany("INSERT INTO alvo_cnae VALUES (?, ?, ?, ?)", alvo)
+    alvo = [
+        (c, seg, prio, ordem[seg], targets.segmentos[seg].match_secundario)
+        for c, (seg, prio) in targets.cnae_map().items()
+    ]
+    con.execute(
+        "CREATE OR REPLACE TABLE alvo_cnae "
+        "(cnae VARCHAR PRIMARY KEY, segmento VARCHAR, prioridade INT, ordem INT, aceita_secundario BOOLEAN)"
+    )
+    con.executemany("INSERT INTO alvo_cnae VALUES (?, ?, ?, ?, ?)", alvo)
+    excluir = [(n, c) for n, s in targets.segmentos.items() for c in s.secundario_excluir_principais]
+    con.execute("CREATE OR REPLACE TABLE excluir_principal (segmento VARCHAR, cnae VARCHAR)")
+    if excluir:
+        con.executemany("INSERT INTO excluir_principal VALUES (?, ?)", excluir)
     con.execute("CREATE OR REPLACE TABLE parametros AS SELECT ?::VARCHAR AS uf, ?::BOOLEAN AS include_mei", [targets.uf, targets.include_mei])
 
     con.execute(SQL_PATH.read_text(encoding="utf-8"))
@@ -55,12 +67,20 @@ def relatorio(con: duckdb.DuckDBPyConnection, targets: Targets) -> list[LinhaRel
                FROM leads_base GROUP BY 1"""
         ).fetchall()
     )
-    mei = dict(con.execute("SELECT segmento, count(*) FROM leads_candidatos WHERE mei GROUP BY 1").fetchall())
+    # excluídos por MEI (entre os que passariam no filtro de secundário) e por filtro de secundário
+    mei = dict(con.execute(
+        "SELECT segmento, count(*) FROM leads_candidatos WHERE mei AND NOT secundario_filtrado GROUP BY 1"
+    ).fetchall())
+    sec_filt = dict(con.execute(
+        "SELECT segmento, count(*) FROM leads_candidatos, parametros p "
+        "WHERE secundario_filtrado AND (p.include_mei OR NOT mei) GROUP BY 1"
+    ).fetchall())
     linhas = []
     for nome, seg in targets.segmentos.items():
         tot, pri, sec, mat = base.get(nome, (0, 0, 0, 0))
         mei_exc = 0 if targets.include_mei else mei.get(nome, 0)
-        linhas.append(LinhaRelatorio(nome, seg.prioridade, tot, pri, sec, mat, mei_exc))
+        linhas.append(LinhaRelatorio(nome, seg.prioridade, tot, pri, sec, mat, mei_exc,
+                                     sec_filt.get(nome, 0), seg.match_secundario))
     return linhas
 
 

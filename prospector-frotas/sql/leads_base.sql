@@ -1,10 +1,12 @@
 -- Gera leads_base a partir das views criadas em prospector/leads_base.py:
 --   estabelecimentos, empresas, simples, cnaes, municipios, naturezas  (Parquet do mês)
---   alvo_cnae(cnae, segmento, prioridade, ordem)                        (targets.yaml)
+--   alvo_cnae(cnae, segmento, prioridade, ordem, aceita_secundario)     (targets.yaml)
+--   excluir_principal(segmento, cnae)  -- secundario_excluir_principais  (targets.yaml)
 --   parametros(uf, include_mei)                                         (targets.yaml)
 -- Layout das colunas: ver sql/receita_layout.md.
 
--- leads_candidatos: tudo que casou por CNAE, inclusive MEI (usado para o relatório de excluídos)
+-- leads_candidatos: tudo que casou por CNAE, inclusive MEI e matches secundários desligados
+-- no targets.yaml (usado para o relatório de excluídos); leads_base aplica os filtros.
 CREATE OR REPLACE TABLE leads_candidatos AS
 WITH p AS (SELECT * FROM parametros),
 est AS (
@@ -18,19 +20,29 @@ est AS (
 filiais AS (
     SELECT cnpj_basico, count(*) AS qtd_filiais FROM est GROUP BY cnpj_basico
 ),
--- melhor segmento vindo dos CNAEs secundários (menor prioridade, depois ordem no YAML)
+-- matches por CNAE secundário; `permitido` = segmento aceita secundário e o CNAE principal
+-- do estabelecimento não está em secundario_excluir_principais daquele segmento
+sec_todos AS (
+    SELECT s.cnpj, a.segmento, a.prioridade * 1000 + a.ordem AS rank,
+           a.aceita_secundario AND x.cnae IS NULL AS permitido
+    FROM (SELECT cnpj, cnae_fiscal_principal, unnest(secs) AS cnae FROM est) s
+    JOIN alvo_cnae a ON a.cnae = trim(s.cnae)
+    LEFT JOIN excluir_principal x ON x.segmento = a.segmento AND x.cnae = s.cnae_fiscal_principal
+),
+-- melhor segmento (menor prioridade, depois ordem no YAML): entre os permitidos e entre todos
 sec_match AS (
     SELECT cnpj,
-           arg_min(a.segmento, a.prioridade * 1000 + a.ordem) AS segmento,
-           list(DISTINCT a.segmento ORDER BY a.segmento) AS segmentos_sec
-    FROM (SELECT cnpj, unnest(secs) AS cnae FROM est) s
-    JOIN alvo_cnae a ON a.cnae = trim(s.cnae)
+           arg_min(segmento, rank) FILTER (WHERE permitido) AS segmento,
+           arg_min(segmento, rank) AS segmento_qualquer,
+           list(DISTINCT segmento ORDER BY segmento) AS segmentos_sec
+    FROM sec_todos
     GROUP BY cnpj
 ),
 casados AS (
     SELECT est.*,
            ap.segmento AS seg_principal,
-           sm.segmento AS seg_secundario,
+           coalesce(sm.segmento, sm.segmento_qualquer) AS seg_secundario,
+           ap.segmento IS NULL AND sm.segmento IS NULL AS secundario_filtrado,
            coalesce(sm.segmentos_sec, []::VARCHAR[]) AS segmentos_sec
     FROM est
     LEFT JOIN alvo_cnae ap ON ap.cnae = est.cnae_fiscal_principal
@@ -69,6 +81,7 @@ SELECT
     f.qtd_filiais,
     coalesce(s.opcao_pelo_simples = 'S', false) AS optante_simples,
     coalesce(s.opcao_mei = 'S', false) AS mei,
+    c.secundario_filtrado,
     'receita' AS origem
 FROM casados c
 JOIN filiais f USING (cnpj_basico)
@@ -80,5 +93,5 @@ LEFT JOIN naturezas nat ON nat.codigo = emp.natureza_juridica
 ORDER BY c.cnpj;
 
 CREATE OR REPLACE TABLE leads_base AS
-SELECT lc.* FROM leads_candidatos lc, parametros p
-WHERE p.include_mei OR NOT lc.mei;
+SELECT lc.* EXCLUDE (secundario_filtrado) FROM leads_candidatos lc, parametros p
+WHERE (p.include_mei OR NOT lc.mei) AND NOT lc.secundario_filtrado;

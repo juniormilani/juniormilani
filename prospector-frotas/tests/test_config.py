@@ -67,3 +67,10 @@ def test_cli_config_invalida_sai_com_erro(tmp_path):
     r = CliRunner().invoke(app, ["score", "--targets", str(_write(tmp_path, d))])
     assert r.exit_code == 2
     assert "uf" in r.output
+
+
+def test_excluir_principais_valida_cnae(tmp_path):
+    d = _base()
+    d["segmentos"]["locadoras"]["secundario_excluir_principais"] = ["4511-1/02"]
+    with pytest.raises(ConfigError, match="secundario_excluir_principais"):
+        load_targets(_write(tmp_path, d))

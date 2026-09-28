@@ -117,3 +117,61 @@ def test_relatorio_e_csv(parquet_dir, tmp_path):
     assert len(linhas) == 11
     l = next(x for x in linhas if x["cnpj"] == "22222222000104")
     assert l["cnaes_secundarios"] == "4930202,4930203"
+
+
+# --- filtros do match secundário -------------------------------------------------------
+
+def _com(t, seg, **upd):
+    segs = dict(t.segmentos)
+    segs[seg] = segs[seg].model_copy(update=upd)
+    return t.model_copy(update={"segmentos": segs})
+
+
+def test_secundario_desligado_cai_no_proximo_segmento_permitido(parquet_dir):
+    # 22222222: principal 4711302 (mercado), secundários 4930202 (carga) e 4930203 (combustíveis)
+    t = _com(load_targets(), "combustiveis_perigosos", match_secundario=False)
+    con, leads = _leads(parquet_dir, t)
+    l = leads["22222222000104"]
+    assert (l["segmento"], l["match_tipo"]) == ("transporte_carga", "secundario")
+    rel = {x.segmento: x for x in relatorio(con, t)}
+    assert rel["combustiveis_perigosos"].secundario_filtrados == 0  # não foi perdido, mudou de segmento
+
+
+def test_secundario_nenhum_remove_so_matches_secundarios(parquet_dir):
+    t = load_targets().com_secundario(["nenhum"])
+    con, leads = _leads(parquet_dir, t)
+    assert "22222222000104" not in leads
+    assert leads["99999999000111"]["match_tipo"] == "principal"  # principal não é afetado
+    assert len(leads) == 10
+    rel = {x.segmento: x for x in relatorio(con, t)}
+    assert rel["combustiveis_perigosos"].secundario_filtrados == 1
+    assert not rel["fretamento"].match_secundario
+
+
+def test_secundario_excluir_principais(parquet_dir):
+    t = _com(load_targets(), "combustiveis_perigosos", secundario_excluir_principais=["4711302"])
+    _, leads = _leads(parquet_dir, t)
+    assert leads["22222222000104"]["segmento"] == "transporte_carga"
+    t2 = _com(t, "transporte_carga", secundario_excluir_principais=["4711302"])
+    _, leads2 = _leads(parquet_dir, t2)
+    assert "22222222000104" not in leads2
+
+
+def test_com_secundario_lista_e_erros():
+    t = load_targets()
+    t2 = t.com_secundario(["fretamento", "locadoras"])
+    assert {n for n, s in t2.segmentos.items() if s.match_secundario} == {"fretamento", "locadoras"}
+    assert all(s.match_secundario for s in t.com_secundario(["todos"]).segmentos.values())
+    from prospector.config import ConfigError
+    with pytest.raises(ConfigError, match="frotas_inexistente"):
+        t.com_secundario(["frotas_inexistente"])
+
+
+def test_cli_secundario_invalido():
+    from typer.testing import CliRunner
+
+    from prospector.cli import app
+
+    res = CliRunner().invoke(app, ["filter", "--secundario", "fretamento,xyz"])
+    assert res.exit_code == 2
+    assert "xyz" in res.output

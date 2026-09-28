@@ -52,7 +52,14 @@ def ingest(
 
 
 @app.command("filter")
-def filter_(targets: Path = TargetsOpt) -> None:
+def filter_(
+    targets: Path = TargetsOpt,
+    secundario: list[str] = typer.Option(
+        None, "--secundario",
+        help="Segmentos que aceitam match por CNAE secundário nesta execução (repetível ou separado por vírgula; "
+             "'todos' ou 'nenhum'). Sobrescreve match_secundario do targets.yaml.",
+    ),
+) -> None:
     """Aplica os filtros de targets.yaml e gera leads_base (+ data/exports/leads_base.csv)."""
     import duckdb
 
@@ -60,6 +67,12 @@ def filter_(targets: Path = TargetsOpt) -> None:
     from prospector.leads_base import exportar_csv, gerar_leads_base, relatorio
 
     t = _targets(targets)
+    if secundario:
+        try:
+            t = t.com_secundario([x for item in secundario for x in item.split(",")])
+        except ConfigError as e:
+            console.print(f"[red]{e}[/red]")
+            raise typer.Exit(code=2) from e
     s = get_settings()
     try:
         parquet_dir = mes_mais_recente_local(s.parquet_dir)
@@ -75,17 +88,20 @@ def filter_(targets: Path = TargetsOpt) -> None:
 
     tab = Table(title=f"leads_base — {parquet_dir.name} — UF {t.uf}")
     tab.add_column("segmento", no_wrap=True)
-    for col in ["prio", "leads", "principal", "secundário", "matrizes", "MEI excl."]:
+    for col in ["prio", "leads", "principal", "secundário", "matrizes", "MEI excl.", "sec. filtrados"]:
         tab.add_column(col, justify="right", no_wrap=True)
     for r in sorted(linhas, key=lambda r: (r.prioridade, -r.total)):
-        tab.add_row(r.segmento, str(r.prioridade), f"{r.total:,}", f"{r.principal:,}", f"{r.secundario:,}",
-                    f"{r.matrizes:,}", f"{r.mei_excluidos:,}")
+        sec = f"{r.secundario:,}" if r.match_secundario else "[dim]desligado[/dim]"
+        tab.add_row(r.segmento, str(r.prioridade), f"{r.total:,}", f"{r.principal:,}", sec,
+                    f"{r.matrizes:,}", f"{r.mei_excluidos:,}", f"{r.secundario_filtrados:,}")
     tab.add_section()
     tab.add_row("TOTAL", "", f"{total:,}", f"{sum(r.principal for r in linhas):,}", f"{sum(r.secundario for r in linhas):,}",
-                f"{sum(r.matrizes for r in linhas):,}", f"{sum(r.mei_excluidos for r in linhas):,}")
+                f"{sum(r.matrizes for r in linhas):,}", f"{sum(r.mei_excluidos for r in linhas):,}",
+                f"{sum(r.secundario_filtrados for r in linhas):,}")
     console.print(tab)
     console.print("principal/secundário = casou pelo CNAE principal ou só por um secundário; "
-                  "matrizes = estabelecimentos matriz; MEI excl. = removidos por include_mei: false")
+                  "matrizes = estabelecimentos matriz; MEI excl. = removidos por include_mei: false; "
+                  "sec. filtrados = matches só por secundário removidos por match_secundario/secundario_excluir_principais")
     console.print(f"Empresas distintas (cnpj_basico): {total - dups:,}")
     console.print(f"CSV: {csv_path}")
 
