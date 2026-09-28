@@ -31,8 +31,10 @@ class Settings(BaseSettings):
     cache_ttl_days: int = Field(30, ge=0)
 
     # Base CNPJ da Receita (ver Notas no PLAN.md sobre a URL atual).
-    receita_base_url: str = ""
-    receita_mes: str = ""  # AAAA-MM; vazio = mais recente
+    # Listagem de diretório com uma pasta por mês (AAAA-MM ou AAAA-MM-DD) contendo os zips.
+    # Default: espelho da Casa dos Dados — o servidor oficial bloqueia IPs fora do Brasil.
+    receita_base_url: str = "https://dados-abertos-rf-cnpj.casadosdados.com.br/arquivos/"
+    receita_mes: str = ""  # AAAA-MM[-DD]; vazio = mais recente
 
     data_dir: Path = PROJECT_ROOT / "data"
 
