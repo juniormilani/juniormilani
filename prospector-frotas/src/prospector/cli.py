@@ -74,9 +74,9 @@ def filter_(targets: Path = TargetsOpt) -> None:
         dups = con.execute("SELECT count(*) - count(DISTINCT substr(cnpj, 1, 8)) FROM leads_base").fetchone()[0]
 
     tab = Table(title=f"leads_base — {parquet_dir.name} — UF {t.uf}")
-    for col, just in [("segmento", "left"), ("prio", "right"), ("leads", "right"), ("por CNAE principal", "right"),
-                      ("por secundário", "right"), ("matrizes", "right"), ("MEI excluídos", "right")]:
-        tab.add_column(col, justify=just)
+    tab.add_column("segmento", no_wrap=True)
+    for col in ["prio", "leads", "principal", "secundário", "matrizes", "MEI excl."]:
+        tab.add_column(col, justify="right", no_wrap=True)
     for r in sorted(linhas, key=lambda r: (r.prioridade, -r.total)):
         tab.add_row(r.segmento, str(r.prioridade), f"{r.total:,}", f"{r.principal:,}", f"{r.secundario:,}",
                     f"{r.matrizes:,}", f"{r.mei_excluidos:,}")
@@ -84,6 +84,8 @@ def filter_(targets: Path = TargetsOpt) -> None:
     tab.add_row("TOTAL", "", f"{total:,}", f"{sum(r.principal for r in linhas):,}", f"{sum(r.secundario for r in linhas):,}",
                 f"{sum(r.matrizes for r in linhas):,}", f"{sum(r.mei_excluidos for r in linhas):,}")
     console.print(tab)
+    console.print("principal/secundário = casou pelo CNAE principal ou só por um secundário; "
+                  "matrizes = estabelecimentos matriz; MEI excl. = removidos por include_mei: false")
     console.print(f"Empresas distintas (cnpj_basico): {total - dups:,}")
     console.print(f"CSV: {csv_path}")
 

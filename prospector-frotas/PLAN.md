@@ -19,7 +19,7 @@ Implementar uma fase por vez, na ordem. Ao concluir, marcar `[x]` e anotar desvi
 
 ---
 
-## Fase 1 — Ingestão da base CNPJ da Receita  [ ]
+## Fase 1 — Ingestão da base CNPJ da Receita  [x]
 **Fonte:** dados abertos do CNPJ da Receita Federal (pesquisar a URL atual; historicamente em `arquivos.receitafederal.gov.br/dados/cnpj/dados_abertos_cnpj/<AAAA-MM>/`). Pegar sempre o mês mais recente disponível.
 
 **Arquivos necessários:** `Empresas*.zip`, `Estabelecimentos*.zip`, `Simples.zip`, `Cnaes.zip`, `Municipios.zip`, `Naturezas.zip`. (Não baixar `Socios*` — não é necessário e reduz risco LGPD.)
@@ -172,3 +172,54 @@ _(registrar aqui desvios, layouts descobertos, datasets indisponíveis, decisõe
 - Dependências só do que as fases 0–1 usam; `selectolax`, `rapidfuzz`, `playwright`, `supabase` entram nas fases correspondentes.
 - `targets.yaml` validado com `extra="forbid"`: chave desconhecida, peso ausente, CNAE fora do formato 7 dígitos, CNAE repetido em dois segmentos ou faixa B ≥ A geram `ConfigError` com o caminho do campo. A CLI sai com código 2.
 - `Lead.status_prospeccao` tem default `"novo"`.
+
+### Fase 1 (concluída)
+**Fonte (desvio importante).** O servidor oficial `arquivos.receitafederal.gov.br` **bloqueia IPs fora do Brasil**
+(a conexão TLS abre e o servidor fecha sem responder). Isso é um problema conhecido, relatado pela Base dos Dados
+(basedosdados/iac#155). O ambiente de desenvolvimento roda fora do Brasil, então a ingestão usa o **espelho da
+Casa dos Dados** (`https://dados-abertos-rf-cnpj.casadosdados.com.br/arquivos/`), que copia os mesmos zips todo mês.
+A URL fica em `RECEITA_BASE_URL` no `.env`. Num IP brasileiro dá para apontar para a fonte oficial, **desde que
+ela sirva uma listagem de diretório com pastas por mês**. Isso não foi verificado porque o servidor ficou
+inacessível; o compartilhamento Nextcloud citado (`index.php/s/...`) provavelmente exige outro cliente.
+
+**Layout.** Conferido contra o PDF oficial de metadados e contra uma amostra real do mês `2026-09-14`
+(ver `sql/receita_layout.md`). O layout do plano **bate**. Diferenças e detalhes que o plano não previa:
+- as pastas do espelho se chamam `AAAA-MM-DD` (data da cópia), não `AAAA-MM`; `RECEITA_MES` aceita os dois formatos;
+- cada zip tem um único arquivo, sem extensão `.csv`;
+- datas vazias vêm como `00000000` (Simples);
+- `municipio` tem 4 dígitos (código da Receita).
+
+**Implementação.**
+- `ingest`: lê a listagem, escolhe o mês mais recente e baixa só `Estabelecimentos*`, `Empresas*`, `Simples`,
+  `Cnaes`, `Municipios` e `Naturezas`. `Socios*` nunca é baixado (bloqueado por regex e coberto por teste).
+- Download com retomada via Range, segmentado em `RECEITA_DOWNLOAD_CONEXOES` conexões paralelas (padrão 4).
+  Motivo: acima de ~512 MB o espelho não usa a CDN e entrega ~1 MB/s por conexão (`Estabelecimentos0.zip`
+  tem 2,1 GB). O arquivo final é conferido pelo `Content-Length`.
+- Conversão em **streaming de dentro do zip**: nada é descompactado em disco. Estabelecimentos são filtrados por
+  `uf` já nessa leitura. Empresas e Simples são filtrados pelo conjunto de `cnpj_basico` que tem estabelecimento na
+  UF, porque não têm coluna UF. Linhas com número de colunas errado abortam com erro. O DuckDB grava o Parquet com
+  todas as colunas VARCHAR.
+- O manifesto `data/parquet/<mes>/_manifest.json` torna o `ingest` idempotente; `--force` refaz a conversão e
+  `--delete-raw` apaga os zips depois de convertidos.
+- `filter`: SQL em `sql/leads_base.sql`, com tabelas `leads_candidatos` (inclui MEI) e `leads_base` no arquivo
+  `data/prospector.duckdb`, e CSV em `data/exports/leads_base.csv`. Falha se houver CNPJ duplicado ou com formato
+  diferente de 14 dígitos.
+
+**Decisões.**
+- `qtd_filiais` conta só estabelecimentos **ativos** do mesmo `cnpj_basico` no RS.
+- `segmento`: o do CNAE principal, se ele for alvo. Senão, o do CNAE secundário de menor `prioridade` (empate:
+  ordem no YAML). Os outros segmentos casados vão em `outros_segmentos`.
+- Um lead por estabelecimento (CNPJ de 14 dígitos), como no plano. Colunas extras: `matriz_filial`,
+  `cnae_principal_descricao`, `telefone_receita_2`, `bairro`, `uf`, `optante_simples`, `mei`.
+
+**Resultado (mês 2026-09-14, RS).** Ingestão do zero em ~18 min (download incluso), 6,6 GB de zips e 302 MB de
+Parquet (4,99 milhões de estabelecimentos do RS, de 73,4 milhões). Pico de RAM: ~1,9 GB no `ingest` e ~1,5 GB no `filter` (~4 s).
+**75.896 leads** (69.515 empresas distintas).
+
+**Pontos para revisar no targets.yaml** (nada foi alterado):
+- Casar pelo CNAE secundário traz ruído. Em `locadoras`, 4.072 dos 5.503 leads vieram só pelo secundário, e os
+  principais maiores são revendas de automóveis. Em `combustiveis_perigosos`, 4.567 dos 5.756 são postos
+  (4731800) e revendas de GLP. Em `ambulancias`, 658 dos 741 são hospitais e clínicas. O score da Fase 5 já
+  pesa `cnae_secundario_alvo` menos que `cnae_principal_alvo`, mas pode valer restringir o match secundário por segmento.
+- `include_mei: false` exclui 65.237 estabelecimentos (55.465 de transporte de carga e 6.780 de fretamento).
+- 15.963 leads são "Empresário (Individual)". O e-mail e o telefone da Receita podem ser pessoais (LGPD).
