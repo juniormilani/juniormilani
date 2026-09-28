@@ -19,8 +19,10 @@ import csv
 import io
 import json
 import re
+import shutil
 import zipfile
 from collections.abc import Callable, Iterable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -128,53 +130,110 @@ class DownloadIncompleto(Exception):
     pass
 
 
-@retry(
+_RETRY = dict(
     retry=retry_if_exception_type((httpx.TransportError, DownloadIncompleto, httpx.HTTPStatusError)),
     wait=wait_exponential(multiplier=2, max=60),
-    stop=stop_after_attempt(5),
+    stop=stop_after_attempt(6),
     reraise=True,
 )
-def baixar(client: httpx.Client, url: str, destino: Path, progress: Progress | None = None) -> Path:
-    """Baixa `url` para `destino`, retomando de `destino.part` via Range.
 
+
+@retry(**_RETRY)
+def _baixar_trecho(
+    client: httpx.Client, url: str, part: Path, ini: int, fim: int | None,
+    progress: Progress | None = None, task=None,
+) -> None:
+    """Baixa os bytes [ini, fim] de `url` para `part`, continuando do que já existe em `part`."""
+    esperado = None if fim is None else fim - ini + 1
+    ja = part.stat().st_size if part.exists() else 0
+    if esperado is not None and ja > esperado:
+        part.unlink()
+        ja = 0
+    if esperado is not None and ja == esperado:
+        return
+    headers = {}
+    if ini + ja > 0 or fim is not None:
+        headers["Range"] = f"bytes={ini + ja}-{'' if fim is None else fim}"
+    with client.stream("GET", url, headers=headers) as r:
+        r.raise_for_status()
+        if r.status_code == 206:
+            modo = "ab"
+        elif ini == 0:  # servidor ignorou o Range: recomeça do zero
+            modo = "wb"
+            if progress is not None and ja:
+                progress.advance(task, -ja)
+        else:
+            raise DownloadIncompleto(f"{part.name}: servidor não respeitou Range")
+        with part.open(modo) as fh:
+            for chunk in r.iter_bytes(1 << 20):
+                fh.write(chunk)
+                if progress is not None:
+                    progress.advance(task, len(chunk))
+    tamanho = part.stat().st_size
+    if esperado is not None and tamanho != esperado:
+        raise DownloadIncompleto(f"{part.name}: {tamanho} de {esperado} bytes")
+
+
+def baixar(
+    client: httpx.Client, url: str, destino: Path, progress: Progress | None = None,
+    conexoes: int = 1, min_segmento: int = 64 << 20,
+) -> Path:
+    """Baixa `url` para `destino` com retomada via Range.
+
+    Se o servidor aceita Range e o arquivo é grande, divide em até `conexoes` trechos baixados
+    em paralelo (arquivos `<destino>.partIofN`), depois concatena. Cada trecho é retomável.
     Idempotente: se `destino` já existe com o tamanho anunciado pelo servidor, não baixa.
     """
     destino.parent.mkdir(parents=True, exist_ok=True)
     head = client.head(url)
     head.raise_for_status()
     total = int(head.headers.get("content-length", 0)) or None
-
     if destino.exists() and (total is None or destino.stat().st_size == total):
         return destino
 
-    part = destino.with_suffix(destino.suffix + ".part")
-    inicio = part.stat().st_size if part.exists() else 0
-    if total is not None and inicio > total:
-        part.unlink()
-        inicio = 0
+    aceita_range = head.headers.get("accept-ranges", "").lower() == "bytes"
+    n = 1
+    if total and aceita_range and conexoes > 1:
+        n = max(1, min(conexoes, total // min_segmento))
+    if n == 1:
+        trechos = [(destino.with_name(destino.name + ".part"), 0, None if total is None else total - 1)]
+    else:
+        passo = -(-total // n)
+        trechos = [
+            (destino.with_name(f"{destino.name}.part{i}of{n}"), i * passo, min(total, (i + 1) * passo) - 1)
+            for i in range(n)
+        ]
 
-    headers = {"Range": f"bytes={inicio}-"} if inicio else {}
-    task = progress.add_task(destino.name, total=total, completed=inicio) if progress else None
-    with client.stream("GET", url, headers=headers) as r:
-        if r.status_code == 416:  # já temos tudo
-            pass
+    task = None
+    if progress is not None:
+        ja = sum(p.stat().st_size for p, _, _ in trechos if p.exists())
+        task = progress.add_task(destino.name + (f" ({n} conexões)" if n > 1 else ""), total=total, completed=ja)
+    try:
+        if n == 1:
+            _baixar_trecho(client, url, *trechos[0], progress, task)
         else:
-            r.raise_for_status()
-            modo = "ab" if inicio and r.status_code == 206 else "wb"
-            if modo == "wb" and task is not None:
-                progress.update(task, completed=0)
-            with part.open(modo) as fh:
-                for chunk in r.iter_bytes(1 << 20):
-                    fh.write(chunk)
-                    if task is not None:
-                        progress.advance(task, len(chunk))
-    if task is not None:
-        progress.remove_task(task)
+            with ThreadPoolExecutor(max_workers=n) as ex:
+                for f in [ex.submit(_baixar_trecho, client, url, p, a, b, progress, task) for p, a, b in trechos]:
+                    f.result()
+    finally:
+        if task is not None:
+            progress.remove_task(task)
 
-    tamanho = part.stat().st_size
-    if total is not None and tamanho != total:
-        raise DownloadIncompleto(f"{destino.name}: {tamanho} de {total} bytes")
-    part.replace(destino)
+    tmp = destino.with_name(destino.name + ".tmp")
+    if n == 1:
+        trechos[0][0].replace(tmp)
+    else:
+        with tmp.open("wb") as out:
+            for p, _, _ in trechos:
+                with p.open("rb") as fh:
+                    shutil.copyfileobj(fh, out, 16 << 20)
+        for p, _, _ in trechos:
+            p.unlink()
+    if total is not None and tmp.stat().st_size != total:
+        tamanho = tmp.stat().st_size
+        tmp.unlink()
+        raise DownloadIncompleto(f"{destino.name}: {tamanho} de {total} bytes após concatenar")
+    tmp.replace(destino)
     return destino
 
 
@@ -304,11 +363,15 @@ def ingest(
     mes_preferido: str = "",
     force: bool = False,
     apagar_raw: bool = False,
+    conexoes: int = 1,
     client: httpx.Client | None = None,
 ) -> ResultadoIngest:
     base_url = base_url.rstrip("/") + "/"
     own = client is None
-    client = client or httpx.Client(timeout=httpx.Timeout(60, read=120), follow_redirects=True)
+    client = client or httpx.Client(
+        timeout=httpx.Timeout(60, read=120), follow_redirects=True,
+        limits=httpx.Limits(max_connections=max(10, conexoes * 2)),
+    )
     try:
         r = client.get(base_url)
         r.raise_for_status()
@@ -331,7 +394,7 @@ def ingest(
         with Progress(TextColumn("{task.description}"), BarColumn(), DownloadColumn(), TransferSpeedColumn(), console=console) as prog:
             for nomes in zips.values():
                 for nome in nomes:
-                    baixar(client, url_mes + nome, raw_dir / nome, prog)
+                    baixar(client, url_mes + nome, raw_dir / nome, prog, conexoes=conexoes)
 
         linhas = converter_mes(raw_dir, parquet_dir, zips, uf, apagar_raw=apagar_raw)
         manifesto.write_text(json.dumps({"mes": mes, "uf": uf, "fonte": url_mes, "linhas": linhas}, indent=2))

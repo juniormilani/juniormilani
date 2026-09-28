@@ -41,7 +41,8 @@ def ingest(
 
     t = _targets(targets)
     s = get_settings()
-    res = run_ingest(s.receita_base_url, s.raw_dir, s.parquet_dir, t.uf, s.receita_mes, force=force, apagar_raw=delete_raw)
+    res = run_ingest(s.receita_base_url, s.raw_dir, s.parquet_dir, t.uf, s.receita_mes, force=force, apagar_raw=delete_raw,
+                     conexoes=s.receita_download_conexoes)
     tab = Table(title=f"Base CNPJ {res.mes} — UF {t.uf}" + (" (já existente)" if res.pulado else ""))
     tab.add_column("tabela")
     tab.add_column("linhas", justify="right")

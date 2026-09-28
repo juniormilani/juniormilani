@@ -115,29 +115,58 @@ def test_linha_com_colunas_erradas(tmp_path):
 
 # --- download -------------------------------------------------------------------------
 
-def test_download_retoma_com_range(tmp_path):
-    conteudo = bytes(range(256)) * 100
-    ranges = []
-
+def _servidor_bytes(conteudo: bytes, ranges: list, aceita_range: bool):
     def handler(req: httpx.Request) -> httpx.Response:
         if req.method == "HEAD":
-            return httpx.Response(200, headers={"content-length": str(len(conteudo))})
+            h = {"content-length": str(len(conteudo))}
+            if aceita_range:
+                h["accept-ranges"] = "bytes"
+            return httpx.Response(200, headers=h)
         rg = req.headers.get("range")
         ranges.append(rg)
         if rg:
-            ini = int(rg.split("=")[1].rstrip("-"))
-            return httpx.Response(206, content=conteudo[ini:])
+            a, b = rg.split("=")[1].split("-")
+            fim = int(b) + 1 if b else len(conteudo)
+            return httpx.Response(206, content=conteudo[int(a):fim])
         return httpx.Response(200, content=conteudo)
 
+    return httpx.MockTransport(handler)
+
+
+def test_download_retoma_com_range(tmp_path):
+    conteudo = bytes(range(256)) * 100
+    ranges: list = []
     destino = tmp_path / "X.zip"
     (tmp_path / "X.zip.part").write_bytes(conteudo[:1000])
-    with httpx.Client(transport=httpx.MockTransport(handler)) as c:
+    with httpx.Client(transport=_servidor_bytes(conteudo, ranges, aceita_range=False)) as c:
         r.baixar(c, "https://ex/X.zip", destino)
         assert destino.read_bytes() == conteudo
-        assert ranges == ["bytes=1000-"]
+        assert ranges == [f"bytes=1000-{len(conteudo) - 1}"]
         # segunda vez: tamanho bate, não baixa de novo
         r.baixar(c, "https://ex/X.zip", destino)
-        assert ranges == ["bytes=1000-"]
+        assert len(ranges) == 1
+    assert not list(tmp_path.glob("*.part*"))
+
+
+def test_download_segmentado_paralelo_e_retomavel(tmp_path):
+    conteudo = bytes(range(256)) * 400  # 102400 bytes
+    ranges: list = []
+    destino = tmp_path / "G.zip"
+    # 4 trechos de 25600; o trecho 1 já tem 100 bytes de uma execução anterior
+    (tmp_path / "G.zip.part1of4").write_bytes(conteudo[25600:25700])
+    with httpx.Client(transport=_servidor_bytes(conteudo, ranges, aceita_range=True)) as c:
+        r.baixar(c, "https://ex/G.zip", destino, conexoes=4, min_segmento=1000)
+    assert destino.read_bytes() == conteudo
+    assert sorted(ranges) == sorted(["bytes=0-25599", "bytes=25700-51199", "bytes=51200-76799", "bytes=76800-102399"])
+    assert not list(tmp_path.glob("*.part*"))
+
+
+def test_download_arquivo_pequeno_nao_segmenta(tmp_path):
+    conteudo = b"x" * 5000
+    ranges: list = []
+    with httpx.Client(transport=_servidor_bytes(conteudo, ranges, aceita_range=True)) as c:
+        r.baixar(c, "https://ex/P.zip", tmp_path / "P.zip", conexoes=4, min_segmento=64 << 20)
+    assert ranges == ["bytes=0-4999"]
 
 
 def test_download_servidor_ignora_range(tmp_path):

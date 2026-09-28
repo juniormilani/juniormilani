@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     # Default: espelho da Casa dos Dados — o servidor oficial bloqueia IPs fora do Brasil.
     receita_base_url: str = "https://dados-abertos-rf-cnpj.casadosdados.com.br/arquivos/"
     receita_mes: str = ""  # AAAA-MM[-DD]; vazio = mais recente
+    receita_download_conexoes: int = Field(4, ge=1, le=16)  # trechos paralelos por arquivo grande
 
     data_dir: Path = PROJECT_ROOT / "data"
 
