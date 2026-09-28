@@ -1,0 +1,87 @@
+# Configuração de alvos do Prospector de Frotas RS
+# Ajuste livremente: nada disso deve estar hardcoded no código.
+
+uf: RS
+include_mei: false
+
+# Municípios prioritários (nomes como na tabela Municipios da Receita, em maiúsculas).
+# Deixe vazio para tratar o RS inteiro igual. Preencher conforme a área de atendimento.
+municipios_prioritarios: []
+#  - PORTO ALEGRE
+#  - CANOAS
+#  - SAPUCAIA DO SUL
+#  - ESTEIO
+#  - SAO LEOPOLDO
+#  - NOVO HAMBURGO
+#  - GRAVATAI
+#  - CACHOEIRINHA
+#  - CAXIAS DO SUL
+
+# CNAEs-alvo agrupados por segmento. prioridade: 1 = mais quente.
+segmentos:
+  fretamento:
+    prioridade: 1
+    cnaes: ["4929901", "4929902", "4929903", "4929904", "4929999"]
+  combustiveis_perigosos:
+    prioridade: 1
+    cnaes: ["4930203", "4681802"]   # produtos perigosos + TRR
+  transporte_carga:
+    prioridade: 2
+    cnaes: ["4930201", "4930202", "4930204"]
+  transporte_escolar:
+    prioridade: 2
+    cnaes: ["4924800"]
+  transporte_coletivo:
+    prioridade: 2
+    cnaes: ["4921301", "4921302", "4922101", "4922102", "4922103"]
+  transporte_valores:
+    prioridade: 2
+    cnaes: ["8012900"]
+  coleta_residuos:
+    prioridade: 3
+    cnaes: ["3811400", "3812200"]
+  locadoras:
+    prioridade: 3
+    cnaes: ["7711000"]
+  ambulancias:
+    prioridade: 3
+    cnaes: ["8621601", "8621602"]
+
+# Palavras-chave procuradas nos sites (case/acento-insensitive)
+keywords_site:
+  - frota
+  - rastreamento
+  - monitoramento
+  - telemetria
+  - camera
+  - seguranca
+  - veiculos
+  - onibus
+  - caminhoes
+  - carretas
+  - fretamento
+  - combustivel
+
+places:
+  match_nome_min_similaridade: 80   # rapidfuzz token_set_ratio
+
+scoring:
+  pesos:
+    cnae_principal_alvo: 25
+    cnae_secundario_alvo: 10
+    segmento_prioridade_1: 10
+    segmento_prioridade_2: 5
+    rntrc_ou_anp: 15
+    porte_epp_ou_demais: 10
+    capital_social_acima_limite: 5
+    tem_filiais: 10
+    mais_de_3_anos: 10
+    tem_site: 3
+    tem_whatsapp: 4
+    tem_email: 3
+    keywords_frota_no_site: 5
+    municipio_prioritario: 5
+  capital_social_limite: 100000
+  faixas:
+    A: 70
+    B: 50
