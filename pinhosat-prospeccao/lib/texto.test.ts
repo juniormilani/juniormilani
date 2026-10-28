@@ -1,0 +1,79 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { dominioCorporativo, ehCelular, formatarCnpj, formatarTelefone, normalizar, palavraParaRegex } from './texto';
+import { dataRf, dividirLinha, parseEmpresa, parseEstabelecimento, razaoSemCpf, telefoneRf } from '../scripts/rf-parse';
+import { montarConsulta } from './busca';
+import { sanitizarFiltros } from './filtros';
+import { gerarCsv } from './exportar';
+import { CAMPOS } from './campos';
+
+test('normalizar remove acentos e padroniza', () => {
+  assert.equal(normalizar('  São   Leopoldo '), 'SAO LEOPOLDO');
+  assert.equal(normalizar('Hidrojateamento Ágil'), 'HIDROJATEAMENTO AGIL');
+});
+
+test('palavraParaRegex: palavra inteira x prefixo', () => {
+  const inteira = new RegExp(palavraParaRegex('gás')!.replace(/\\m/g, '\\b').replace(/\\M/g, '\\b'));
+  assert.ok(inteira.test('REVENDA DE GAS SILVA'));
+  assert.ok(!inteira.test('GASTRONOMIA SILVA'));
+  const prefixo = new RegExp(palavraParaRegex('desentup*')!.replace(/\\m/g, '\\b'));
+  assert.ok(prefixo.test('DESENTUPIDORA CANOAS'));
+  assert.equal(palavraParaRegex('ab'), null);
+});
+
+test('telefones e celulares', () => {
+  assert.equal(telefoneRf('51', '99998888'), '51999998888', 'celular antigo recebe o 9º dígito');
+  assert.equal(telefoneRf('51', '34567890'), '5134567890', 'fixo mantém 8 dígitos');
+  assert.equal(telefoneRf('', '34567890'), null);
+  assert.equal(telefoneRf('51', '00000000'), null);
+  assert.ok(ehCelular('51999998888'));
+  assert.ok(!ehCelular('5134567890'));
+  assert.equal(formatarTelefone('51999998888'), '(51) 99999-8888');
+  assert.equal(formatarCnpj('12345678000190'), '12.345.678/0001-90');
+});
+
+test('e-mail corporativo', () => {
+  assert.equal(dominioCorporativo('contato@transportesx.com.br'), 'transportesx.com.br');
+  assert.equal(dominioCorporativo('fulano@gmail.com'), null);
+  assert.equal(dominioCorporativo('fiscal@contabilidadeabc.com.br'), null);
+});
+
+test('parser da Receita Federal', () => {
+  assert.deepEqual(dividirLinha('"a";"b;c";"d"'), ['a', 'b;c', 'd']);
+  assert.deepEqual(dividirLinha('"a";"diz ""oi""";"d"'), ['a', 'diz "oi"', 'd']);
+  assert.equal(dataRf('20200115'), '2020-01-15');
+  assert.equal(dataRf('00000000'), null);
+  const linha = ['12345678', '0001', '90', '1', 'TRANSX', '02', '20200101', '00', '', '', '20100505', '4930202', '5211799,4930201',
+    'RUA', 'DAS FLORES', '100', 'SALA 2', 'CENTRO', '93200000', 'RS', '8589', '51', '99998888', '51', '32223333', '', '', 'CONTATO@TRANSX.COM.BR', '', ''];
+  const e = parseEstabelecimento(linha)!;
+  assert.equal(e.cnpj, '12345678000190');
+  assert.equal(e.matriz, true);
+  assert.deepEqual(e.cnaes_secundarios, ['5211799', '4930201']);
+  assert.equal(e.telefone1, '51999998888');
+  assert.equal(e.email, 'contato@transx.com.br');
+  assert.equal(razaoSemCpf('JOAO DA SILVA 12345678901'), 'JOAO DA SILVA');
+  const emp = parseEmpresa(['12345678', 'TRANSX LTDA', '2062', '49', '150000,00', '03', ''])!;
+  assert.equal(emp.capital_social, '150000.00');
+  assert.equal(emp.porte, '03');
+});
+
+test('consulta parametrizada: nenhum valor do usuário entra no SQL', () => {
+  const f = sanitizarFiltros({ texto: "x'; drop table empresas; --", segmentos: [1], ufs: ['RS'], comTelefone: true, limite: 999999 });
+  const { sql, params } = montarConsulta(f);
+  assert.ok(!sql.includes('drop table'));
+  assert.ok(params.includes("%X'; DROP TABLE EMPRESAS; --%"));
+  assert.match(sql, /limit 5000/);
+});
+
+test('modo restrito considera só o CNAE principal', () => {
+  assert.match(montarConsulta({ segmentos: [2], modoSegmento: 'principal' }).sql, /es\.tipo <= 1/);
+  assert.match(montarConsulta({ segmentos: [2] }).sql, /es\.tipo <= 3/);
+});
+
+test('CSV: BOM, separador ; e proteção contra fórmulas', () => {
+  const campos = CAMPOS.filter((c) => ['razao_social', 'pontos'].includes(c.chave));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const csv = gerarCsv([{ razaoSocial: '=HYPERLINK("x");1', pontos: -5 } as any], campos);
+  assert.ok(csv.startsWith('﻿Razão social;Pontuação'));
+  assert.ok(csv.includes(`"'=HYPERLINK(""x"");1";-5`));
+});

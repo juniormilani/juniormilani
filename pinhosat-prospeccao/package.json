@@ -1,0 +1,42 @@
+{
+  "name": "pinhosat-prospeccao",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Gerador de listas de prospecção B2B da PinhoSat (MVP)",
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test lib/*.test.ts",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "importar:rf": "tsx scripts/importar-rf.ts",
+    "importar:rntrc": "tsx scripts/importar-rntrc.ts",
+    "db:regioes": "tsx scripts/seed-regioes.ts",
+    "db:classificar": "tsx scripts/classificar.ts"
+  },
+  "dependencies": {
+    "csv-parse": "7.0.3",
+    "exceljs": "4.4.0",
+    "iconv-lite": "0.7.3",
+    "next": "16.4.3",
+    "pg": "8.23.1",
+    "pg-copy-streams": "7.0.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "yauzl": "3.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "@types/pg": "8.11.10",
+    "@types/pg-copy-streams": "1.2.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/yauzl": "2.10.3",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  },
+  "overrides": {
+    "uuid": "11.1.1"
+  }
+}
