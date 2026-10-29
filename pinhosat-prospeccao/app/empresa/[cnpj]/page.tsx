@@ -104,11 +104,11 @@ export default function EmpresaDetalhe({ params }: { params: Promise<{ cnpj: str
             <h2>Contatos complementares</h2>
             <p className="mudo">Use para registrar WhatsApp confirmado, site ou e-mail do responsável pela frota. Sempre informe de onde veio o dado.</p>
             {d.contatos.length > 0 && (
-              <table className="tab" style={{ marginBottom: 10 }}>
+              <table className="tab responsiva" style={{ marginBottom: 10 }}>
                 <thead><tr><th>Tipo</th><th>Valor</th><th>Fonte</th><th>Verificado</th><th></th></tr></thead>
                 <tbody>{d.contatos.map((c) => (
-                  <tr key={c.id}><td>{c.tipo}</td><td>{c.tipo === 'telefone' || c.tipo === 'whatsapp' ? formatarTelefone(c.valor) : c.valor}</td><td className="mudo">{c.fonte}<br />{c.criado_por} · {dataBr(c.criado_em)}</td>
-                    <td>{c.verificado ? 'Sim' : 'Não'}</td><td><button className="btn pequeno perigo" onClick={() => delContato(c.id)}>Excluir</button></td></tr>
+                  <tr key={c.id}><td data-label="Tipo">{c.tipo}</td><td data-label="Valor">{c.tipo === 'telefone' || c.tipo === 'whatsapp' ? formatarTelefone(c.valor) : c.valor}</td><td data-label="Fonte" className="mudo">{c.fonte}<br />{c.criado_por} · {dataBr(c.criado_em)}</td>
+                    <td data-label="Verificado">{c.verificado ? 'Sim' : 'Não'}</td><td><button className="btn pequeno perigo" onClick={() => delContato(c.id)}>Excluir</button></td></tr>
                 ))}</tbody>
               </table>
             )}
@@ -127,7 +127,7 @@ export default function EmpresaDetalhe({ params }: { params: Promise<{ cnpj: str
           {d.outrosEstabelecimentos.length > 0 && (
             <section className="cartao pad" style={{ marginTop: 16 }}>
               <h2>Outros estabelecimentos da empresa</h2>
-              <table className="tab"><tbody>{d.outrosEstabelecimentos.map((o) => (
+              <table className="tab responsiva"><tbody>{d.outrosEstabelecimentos.map((o) => (
                 <tr key={o.cnpj}><td><Link href={`/empresa/${o.cnpj}`} className="mono">{formatarCnpj(o.cnpj)}</Link></td>
                   <td>{o.matriz ? 'Matriz' : 'Filial'}</td><td>{o.nome_fantasia}</td><td>{o.cidade}/{o.uf}</td>
                   <td>{SITUACAO_CADASTRAL[o.situacao]}</td><td>{o.status ? STATUS_PROSPECCAO[o.status as keyof typeof STATUS_PROSPECCAO] : ''}</td></tr>

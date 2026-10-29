@@ -25,16 +25,16 @@ export default function Acompanhamento() {
       </div>
       <section className="cartao">
         {d.empresas.length === 0 ? <div className="carregando">Nenhum retorno agendado para os próximos 7 dias.</div> : (
-          <table className="tab">
+          <table className="tab responsiva">
             <thead><tr><th>Retorno</th><th>Empresa</th><th>Status</th><th>Contatos</th><th>Cidade</th></tr></thead>
             <tbody>{d.empresas.map((e) => (
               <tr key={e.cnpj}>
-                <td>{e.proximoContato! < hoje ? <span className="pilula aviso">{dataBr(e.proximoContato)} — vencido</span> : dataBr(e.proximoContato)}</td>
-                <td><Link className="nome" href={`/empresa/${e.cnpj}`}>{e.razaoSocial}</Link>{e.nomeFantasia && <div>{e.nomeFantasia}</div>}
+                <td data-label="Retorno">{e.proximoContato! < hoje ? <span className="pilula aviso">{dataBr(e.proximoContato)} — vencido</span> : dataBr(e.proximoContato)}</td>
+                <td data-label="Empresa"><Link className="nome" href={`/empresa/${e.cnpj}`}>{e.razaoSocial}</Link>{e.nomeFantasia && <div>{e.nomeFantasia}</div>}
                   <div className="mudo">último contato: {dataBr(e.ultimoContato) || '—'}</div></td>
-                <td><span className="pilula">{e.prospeccaoStatusTexto}</span></td>
-                <td><Contatos e={e} /></td>
-                <td>{e.cidade}/{e.uf}</td>
+                <td data-label="Status"><span className="pilula">{e.prospeccaoStatusTexto}</span></td>
+                <td data-label="Contatos"><Contatos e={e} /></td>
+                <td data-label="Cidade">{e.cidade}/{e.uf}</td>
               </tr>
             ))}</tbody>
           </table>

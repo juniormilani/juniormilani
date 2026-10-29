@@ -128,15 +128,15 @@ export default function Configuracoes() {
           <span className="info-res"><strong>{segs.length}</strong> segmentos</span>
           <button className="btn primario" onClick={() => setForm({ ...VAZIO })}>Novo segmento</button>
         </div>
-        <table className="tab">
+        <table className="tab responsiva">
           <thead><tr><th>Segmento</th><th>Grupo</th><th>Prioridade</th><th>CNAEs</th><th>Palavras-chave</th><th></th></tr></thead>
           <tbody>{segs.map((s) => (
             <tr key={s.id} style={{ opacity: s.ativo ? 1 : 0.5 }}>
-              <td><strong>{s.nome}</strong>{!s.ativo && ' (inativo)'}{s.descricao && <div className="mudo">{s.descricao}</div>}</td>
-              <td>{s.grupo}</td>
-              <td><span className={`pilula ${s.prioridade === 'alta' ? 'ok' : ''}`}>{PRIOR[s.prioridade]}</span></td>
-              <td className="mudo">{s.cnaes_info.map((c) => <div key={c.codigo} title={c.descricao}><span className="mono">{formatarCnae(c.codigo)}</span> {c.descricao.slice(0, 50)}{c.descricao.length > 50 ? '…' : ''}</div>)}</td>
-              <td className="mudo">{s.palavras_chave.join(', ')}</td>
+              <td data-label="Segmento"><strong>{s.nome}</strong>{!s.ativo && ' (inativo)'}{s.descricao && <div className="mudo">{s.descricao}</div>}</td>
+              <td data-label="Grupo">{s.grupo}</td>
+              <td data-label="Prioridade"><span className={`pilula ${s.prioridade === 'alta' ? 'ok' : ''}`}>{PRIOR[s.prioridade]}</span></td>
+              <td data-label="CNAEs" className="mudo">{s.cnaes_info.map((c) => <div key={c.codigo} title={c.descricao}><span className="mono">{formatarCnae(c.codigo)}</span> {c.descricao.slice(0, 50)}{c.descricao.length > 50 ? '…' : ''}</div>)}</td>
+              <td data-label="Palavras-chave" className="mudo">{s.palavras_chave.join(', ')}</td>
               <td className="linha">
                 <button className="btn pequeno" onClick={() => setForm({ id: s.id, nome: s.nome, grupo: s.grupo, prioridade: s.prioridade, cnaes: s.cnaes.join(', '),
                   palavras_chave: s.palavras_chave.join('\n'), descricao: s.descricao ?? '', ativo: s.ativo })}>Editar</button>
@@ -177,12 +177,12 @@ export default function Configuracoes() {
           <span className="info-res"><strong>{regs.length}</strong> regiões</span>
           <button className="btn primario" onClick={() => setReg({ nome: '', uf: 'RS', municipios: [] })}>Nova região</button>
         </div>
-        <table className="tab">
+        <table className="tab responsiva">
           <thead><tr><th>Região</th><th>UF</th><th>Cidades</th><th></th></tr></thead>
           <tbody>{regs.map((r) => (
             <tr key={r.id}>
-              <td><strong>{r.nome}</strong></td><td>{r.uf}</td>
-              <td className="mudo">{r.municipios_info.map((m) => m.nome).join(', ')}</td>
+              <td data-label="Região"><strong>{r.nome}</strong></td><td data-label="UF">{r.uf}</td>
+              <td data-label="Cidades" className="mudo">{r.municipios_info.map((m) => m.nome).join(', ')}</td>
               <td className="linha">
                 <button className="btn pequeno" onClick={() => setReg({ id: r.id, nome: r.nome, uf: r.uf, municipios: r.municipios_info })}>Editar</button>
                 <button className="btn pequeno perigo" onClick={async () => { if (confirm(`Excluir a região "${r.nome}"?`)) { await api(`/api/regioes/${r.id}`, { method: 'DELETE' }); carregar(); } }}>Excluir</button>

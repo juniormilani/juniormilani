@@ -129,17 +129,17 @@ export default function Analise() {
               <span className="info-res"><strong>Aderência média por critério</strong> — clientes × {ref}</span>
               <button className="btn primario" disabled={!a.pesosSugeridos} onClick={aplicar}>Aplicar pesos sugeridos</button>
             </div>
-            <table className="tab">
+            <table className="tab responsiva">
               <thead><tr><th>Critério</th><th>Clientes</th><th>Sem interesse</th><th>Base (amostra)</th><th>Diferença</th><th>Peso atual</th><th>Peso sugerido</th></tr></thead>
               <tbody>{a.criterios.map((c) => (
                 <tr key={c.chave}>
-                  <td><strong>{c.nome}</strong></td>
-                  <td><Barra valor={c.clientes} /></td>
-                  <td><Barra valor={c.semInteresse} cor="#b8860b" /></td>
-                  <td><Barra valor={c.base} cor="#8a949e" /></td>
-                  <td className="mono">{c.diferenca > 0 ? `+${Math.round(c.diferenca * 100)} p.p.` : '0'}</td>
-                  <td className="mono">{c.pesoAtual}</td>
-                  <td className="mono">{c.pesoSugerido === null ? '—' : <strong style={{ color: c.pesoSugerido > c.pesoAtual ? 'var(--alto)' : c.pesoSugerido < c.pesoAtual ? 'var(--danger)' : undefined }}>{c.pesoSugerido}</strong>}</td>
+                  <td data-label="Critério"><strong>{c.nome}</strong></td>
+                  <td data-label="Clientes"><Barra valor={c.clientes} /></td>
+                  <td data-label="Sem interesse"><Barra valor={c.semInteresse} cor="#b8860b" /></td>
+                  <td data-label="Base (amostra)"><Barra valor={c.base} cor="#8a949e" /></td>
+                  <td data-label="Diferença" className="mono">{c.diferenca > 0 ? `+${Math.round(c.diferenca * 100)} p.p.` : '0'}</td>
+                  <td data-label="Peso atual" className="mono">{c.pesoAtual}</td>
+                  <td data-label="Peso sugerido" className="mono">{c.pesoSugerido === null ? '—' : <strong style={{ color: c.pesoSugerido > c.pesoAtual ? 'var(--alto)' : c.pesoSugerido < c.pesoAtual ? 'var(--danger)' : undefined }}>{c.pesoSugerido}</strong>}</td>
                 </tr>
               ))}</tbody>
             </table>
@@ -150,12 +150,12 @@ export default function Analise() {
           <div className="dois">
             <section className="cartao">
               <div className="barra-acoes" style={{ position: 'static' }}><span className="info-res"><strong>Resultado por faixa</strong> (empresas já contatadas)</span></div>
-              <table className="tab">
+              <table className="tab responsiva">
                 <thead><tr><th>Faixa</th><th>Contatadas</th><th>Clientes</th><th>Sem interesse</th><th>Conversão</th></tr></thead>
                 <tbody>{a.funil.map((f) => (
                   <tr key={f.faixa}>
-                    <td><span className="icp"><span className={`letra ${f.faixa}`}>{f.faixa}</span></span></td>
-                    <td>{f.contatadas}</td><td>{f.clientes}</td><td>{f.semInteresse}</td><td><Barra valor={f.conversao} /></td>
+                    <td data-label="Faixa"><span className="icp"><span className={`letra ${f.faixa}`}>{f.faixa}</span></span></td>
+                    <td data-label="Contatadas">{f.contatadas}</td><td data-label="Clientes">{f.clientes}</td><td data-label="Sem interesse">{f.semInteresse}</td><td data-label="Conversão"><Barra valor={f.conversao} /></td>
                   </tr>
                 ))}</tbody>
               </table>
@@ -164,11 +164,11 @@ export default function Analise() {
             <section className="cartao">
               <div className="barra-acoes" style={{ position: 'static' }}><span className="info-res"><strong>Segmentos dos clientes</strong></span></div>
               {a.segmentosClientes.length === 0 ? <div className="carregando">Sem clientes registrados.</div> : (
-                <table className="tab">
+                <table className="tab responsiva">
                   <thead><tr><th>Segmento</th><th>Clientes</th><th></th></tr></thead>
                   <tbody>{a.segmentosClientes.map((s) => (
                     <tr key={s.id ?? 'x'}>
-                      <td>{s.nome ?? <span className="vazio">Sem segmento cadastrado</span>}</td><td>{s.qtd}</td>
+                      <td data-label="Segmento">{s.nome ?? <span className="vazio">Sem segmento cadastrado</span>}</td><td data-label="Clientes">{s.qtd}</td>
                       <td>{s.noIcp ? <span className="pilula ok">no ICP</span> : s.id ? <span className="pilula aviso">fora do ICP — avaliar incluir</span> : <span className="pilula aviso">criar segmento?</span>}</td>
                     </tr>
                   ))}</tbody>

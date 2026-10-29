@@ -5,9 +5,10 @@ import { empresasPorCnpj } from '@/lib/servico';
 export const dynamic = 'force-dynamic';
 type Ctx = { params: Promise<{ cnpj: string }> };
 
-export const GET = rota(async (_req: Request, ctx: Ctx) => {
+export const GET = rota(async (req: Request, ctx: Ctx) => {
   const cnpj = (await ctx.params).cnpj.replace(/\D/g, '');
-  const [empresa] = await empresasPorCnpj([cnpj]);
+  const icp = Number(new URL(req.url).searchParams.get('icp')) || undefined;
+  const [empresa] = await empresasPorCnpj([cnpj], undefined, icp);
   if (!empresa) return ok({ erro: 'Empresa não encontrada na base.' }, 404);
   const [prospeccao] = await query('select * from prospeccao where cnpj = $1', [cnpj]);
   const historico = await query(

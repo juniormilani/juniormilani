@@ -32,17 +32,17 @@ export default function Listas() {
         {!listas ? <div className="carregando">Carregando…</div> : listas.length === 0 ? (
           <div className="carregando">Nenhuma lista ainda. Gere uma busca, selecione as empresas e clique em “Salvar em lista”.</div>
         ) : (
-          <table className="tab">
+          <table className="tab responsiva">
             <thead><tr><th>Nome</th><th>Empresas</th><th>Contatadas</th><th>Criada</th><th>Atualizada</th><th>Exportações</th><th></th></tr></thead>
             <tbody>
               {listas.map((l) => (
                 <tr key={l.id}>
-                  <td><Link href={`/listas/${l.id}`} className="nome">{l.nome}</Link>{l.descricao && <div className="mudo">{l.descricao}</div>}</td>
-                  <td>{l.quantidade}</td>
-                  <td>{l.contatadas} <span className="mudo">({l.quantidade ? Math.round((100 * l.contatadas) / l.quantidade) : 0}%)</span></td>
-                  <td>{dataBr(l.criado_em)}<div className="mudo">{l.criado_por}</div></td>
-                  <td>{dataBr(l.atualizado_em)}</td>
-                  <td>{l.exportacoes}{l.ultima_exportacao && <div className="mudo">última {dataBr(l.ultima_exportacao)}</div>}</td>
+                  <td data-label="Nome"><Link href={`/listas/${l.id}`} className="nome">{l.nome}</Link>{l.descricao && <div className="mudo">{l.descricao}</div>}</td>
+                  <td data-label="Empresas">{l.quantidade}</td>
+                  <td data-label="Contatadas">{l.contatadas} <span className="mudo">({l.quantidade ? Math.round((100 * l.contatadas) / l.quantidade) : 0}%)</span></td>
+                  <td data-label="Criada">{dataBr(l.criado_em)}<div className="mudo">{l.criado_por}</div></td>
+                  <td data-label="Atualizada">{dataBr(l.atualizado_em)}</td>
+                  <td data-label="Exportações">{l.exportacoes}{l.ultima_exportacao && <div className="mudo">última {dataBr(l.ultima_exportacao)}</div>}</td>
                   <td className="linha">
                     <Link className="btn pequeno" href={`/listas/${l.id}`}>Abrir</Link>
                     <button className="btn pequeno" onClick={() => setExportar(l.id)}>Exportar</button>

@@ -59,10 +59,10 @@ export function EditorIcp({ onMensagem }: { onMensagem: (m: string) => void }) {
 
   const linha = (titulo: string, ajuda: string, pesoAtual: number, onPeso: (n: number) => void, extra?: React.ReactNode) => (
     <tr>
-      <td><strong>{titulo}</strong><div className="mudo">{ajuda}</div></td>
-      <td><Peso valor={pesoAtual} onChange={onPeso} /></td>
-      <td className="mudo">{pct(pesoAtual)}</td>
-      <td>{extra}</td>
+      <td data-label="Critério"><strong>{titulo}</strong><div className="mudo">{ajuda}</div></td>
+      <td data-label="Peso"><Peso valor={pesoAtual} onChange={onPeso} /></td>
+      <td data-label="Influência" className="mudo">{pct(pesoAtual)}</td>
+      <td data-label="Ideal">{extra}</td>
     </tr>
   );
 
@@ -78,7 +78,7 @@ export function EditorIcp({ onMensagem }: { onMensagem: (m: string) => void }) {
           </div>
           <label className="check"><input type="checkbox" checked={form.padrao} onChange={(e) => setForm({ ...form, padrao: e.target.checked })} /> Perfil padrão das buscas</label>
           <p className="mudo">Score = média ponderada da aderência de cada critério (0 a 100). Faixas: A ≥ {FAIXAS_ICP.A}, B ≥ {FAIXAS_ICP.B}, C ≥ {FAIXAS_ICP.C}, D abaixo. Peso 0 desliga o critério.</p>
-          <table className="tab">
+          <table className="tab responsiva">
             <thead><tr><th>Critério</th><th>Peso</th><th>Influência</th><th>Ideal</th></tr></thead>
             <tbody>
               {linha('Segmento', 'CNAE principal = 100%, secundário ou nome = 50%', c.segmentos.peso, (n) => setC((x) => { x.segmentos.peso = n; }),
@@ -130,7 +130,7 @@ export function EditorIcp({ onMensagem }: { onMensagem: (m: string) => void }) {
           <span className="info-res"><strong>{icps.length}</strong> perfis de cliente ideal</span>
           <button className="btn primario" onClick={() => setForm({ nome: '', descricao: '', padrao: false, criterios: clone(CRITERIOS_VAZIOS) })}>Novo perfil</button>
         </div>
-        <table className="tab">
+        <table className="tab responsiva">
           <thead><tr><th>Perfil</th><th>Critérios com peso</th><th></th></tr></thead>
           <tbody>{icps.map((i) => {
             const k = i.criterios;
@@ -139,8 +139,8 @@ export function EditorIcp({ onMensagem }: { onMensagem: (m: string) => void }) {
               .filter(([, p]) => p > 0).map(([n, p]) => `${n} ${p}`).join(' · ');
             return (
               <tr key={i.id}>
-                <td><strong>{i.nome}</strong> {i.padrao && <span className="pilula ok">padrão</span>}{i.descricao && <div className="mudo">{i.descricao}</div>}</td>
-                <td className="mudo">{ativos}</td>
+                <td data-label="Perfil"><strong>{i.nome}</strong> {i.padrao && <span className="pilula ok">padrão</span>}{i.descricao && <div className="mudo">{i.descricao}</div>}</td>
+                <td data-label="Critérios com peso" className="mudo">{ativos}</td>
                 <td className="linha">
                   <button className="btn pequeno" onClick={() => setForm({ id: i.id, nome: i.nome, descricao: i.descricao ?? '', padrao: i.padrao, criterios: clone(i.criterios) })}>Editar</button>
                   <button className="btn pequeno" onClick={() => setForm({ nome: `${i.nome} (cópia)`, descricao: i.descricao ?? '', padrao: false, criterios: clone(i.criterios) })}>Duplicar</button>
