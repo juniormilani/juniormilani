@@ -16,12 +16,12 @@ const ITENS: { href: string; rotulo: string; curto: string; icone: string }[] = 
 
 type Tema = 'light' | 'dark';
 
-/** Alterna claro/escuro. Sem escolha salva, segue o sistema; a escolha fica neste navegador. */
+/** Alterna claro/escuro. O padrão é o claro; a escolha fica salva neste navegador. */
 function BotaoTema() {
   const [tema, setTema] = useState<Tema | null>(null);
   useEffect(() => {
     const salvo = document.documentElement.getAttribute('data-theme') as Tema | null;
-    setTema(salvo ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+    setTema(salvo === 'dark' ? 'dark' : 'light');
   }, []);
   const alternar = () => {
     const novo: Tema = tema === 'dark' ? 'light' : 'dark';

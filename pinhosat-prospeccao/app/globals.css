@@ -1,5 +1,5 @@
 /* PinhoSat Prospecção — estilos globais.
-   Tokens no :root; tema escuro automático; layout desktop-first com ajustes para celular (< 768px). */
+   Tokens no :root; tema claro padrão e escuro opcional (botão no topo); layout desktop-first com ajustes para celular (< 768px). */
 
 :root {
   --bg: #f3f5f4;
@@ -34,7 +34,7 @@
   --tabbar: 0px;
   color-scheme: light;
 }
-/* Tema escuro: escolha manual (data-theme="dark", botão no topo) ou, sem escolha, a preferência do sistema. */
+/* Tema escuro: só quando escolhido no botão do topo (data-theme="dark"). O padrão é o tema claro. */
 :root[data-theme="dark"] {
   --bg: #0f1412; --surface: #171e1b; --surface-2: #1c2420; --surface-3: #222c27; --border: #2c3732; --border-strong: #3a4842;
   --text: #e6ede9; --muted: #9aa9a2; --brand: #4fbf8c; --brand-strong: #6fd3a3; --brand-soft: #1d382c; --on-brand: #0b1310;
@@ -42,16 +42,6 @@
   --alto: #6fd3a3; --alto-soft: #1d382c; --medio: #e3b14a; --medio-soft: #3a2f14; --verificar: #a9b4bf; --verificar-soft: #262e35;
   --info: #8bb4e8; --info-soft: #1b2a3c; --shadow: 0 1px 2px rgba(0, 0, 0, .3); --shadow-lg: 0 12px 40px rgba(0, 0, 0, .5);
   color-scheme: dark;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-  --bg: #0f1412; --surface: #171e1b; --surface-2: #1c2420; --surface-3: #222c27; --border: #2c3732; --border-strong: #3a4842;
-  --text: #e6ede9; --muted: #9aa9a2; --brand: #4fbf8c; --brand-strong: #6fd3a3; --brand-soft: #1d382c; --on-brand: #0b1310;
-  --danger: #ef7d74; --danger-soft: #3a1f1c; --warn: #e3b14a; --warn-soft: #3a2f14;
-  --alto: #6fd3a3; --alto-soft: #1d382c; --medio: #e3b14a; --medio-soft: #3a2f14; --verificar: #a9b4bf; --verificar-soft: #262e35;
-  --info: #8bb4e8; --info-soft: #1b2a3c; --shadow: 0 1px 2px rgba(0, 0, 0, .3); --shadow-lg: 0 12px 40px rgba(0, 0, 0, .5);
-  color-scheme: dark;
-  }
 }
 
 * { box-sizing: border-box; }

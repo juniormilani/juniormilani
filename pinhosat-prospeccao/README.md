@@ -76,6 +76,8 @@ O ambiente de teste roda assim:
 - **Banco:** Supabase, em um schema isolado `pinhosat`. Um usuário próprio (`pinhosat_app`) só enxerga esse schema e
   tem `search_path = pinhosat, extensions` e `jit = off` configurados no papel. A conexão usa o pooler IPv4
   (`aws-1-sa-east-1.pooler.supabase.com:6543`).
+- **Endereço:** `prospeccao.oddosales.com.br`. O DNS fica no Registro.br, com um CNAME `prospeccao` apontando para o
+  valor indicado pela Vercel em *Settings → Domains*.
 - **Aplicação:** Vercel, com Root Directory `pinhosat-prospeccao` e funções em `gru1` (São Paulo, ver `vercel.json`).
 - **Variáveis:**
   - `DATABASE_URL` — URL do pooler;
