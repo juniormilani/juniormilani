@@ -117,3 +117,19 @@ test('um lead por empresa usa distinct on pela raiz do CNPJ', () => {
   assert.match(montarConsulta({ umPorEmpresa: true }).sql, /distinct on \(cnpj_basico\)/);
   assert.doesNotMatch(montarConsulta({}).sql, /distinct on/);
 });
+
+test('sessão: token assinado, expiração, adulteração e usuário removido', async () => {
+  process.env.AUTH_SECRET = 'segredo-de-teste';
+  const { criarToken, lerToken } = await import('./sessao');
+  const validos = new Set(['ana']);
+  const t = await criarToken('ana', 60);
+  assert.equal(await lerToken(t, validos), 'ana');
+  assert.equal(await lerToken(t, new Set(['bia'])), null, 'usuário removido de APP_USERS perde o acesso');
+  const [corpo, sig] = t.split('.');
+  const forjado = Buffer.from(JSON.stringify({ u: 'ana', exp: 9999999999 })).toString('base64url');
+  assert.equal(await lerToken(`${forjado}.${sig}`, validos), null, 'corpo alterado invalida a assinatura');
+  assert.equal(await lerToken(`${corpo}.x${sig.slice(1)}`, validos), null);
+  assert.equal(await lerToken(await criarToken('ana', -1), validos), null, 'token expirado');
+  process.env.AUTH_SECRET = 'outro-segredo';
+  assert.equal(await lerToken(t, validos), null, 'trocar o segredo invalida as sessões');
+});

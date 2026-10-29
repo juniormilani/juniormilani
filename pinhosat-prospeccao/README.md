@@ -83,7 +83,8 @@ O ambiente de teste roda assim:
   - `DATABASE_URL` — URL do pooler;
   - `DATABASE_SSL=true`;
   - `DATABASE_POOLER=true` — pool menor e sem parâmetros de sessão;
-  - `APP_USERS` — login do app.
+  - `APP_USERS` — usuários do app (`usuario:senha`, separados por vírgula);
+  - `AUTH_SECRET` — segredo que assina o cookie de sessão da tela de login.
 - **Dados:** o plano gratuito tem 500 MB, então o teste usa um recorte (RS, ativas, sem MEI, nos 27 segmentos, cerca de
   200 MB). Em produção com a base completa, use o Supabase Pro e rode os importadores apontando `DATABASE_URL` para
   o banco.

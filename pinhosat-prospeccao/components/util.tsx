@@ -1,12 +1,18 @@
 'use client';
 import { useCallback, useState } from 'react';
 
+/** Sessão expirada: volta para o login e retorna à página atual depois de entrar. */
+function irParaLogin() {
+  window.location.replace(`/login?volta=${encodeURIComponent(location.pathname + location.search)}`);
+}
+
 export async function api<T = unknown>(url: string, opts: { method?: string; body?: unknown } = {}): Promise<T> {
   const r = await fetch(url, {
     method: opts.method ?? (opts.body !== undefined ? 'POST' : 'GET'),
     headers: opts.body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
     body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
   });
+  if (r.status === 401) irParaLogin();
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(j.erro ?? `Erro ${r.status}`);
   return j as T;
@@ -15,6 +21,7 @@ export async function api<T = unknown>(url: string, opts: { method?: string; bod
 /** Faz POST e dispara o download do arquivo retornado. */
 export async function baixar(url: string, body: unknown) {
   const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (r.status === 401) irParaLogin();
   if (!r.ok) {
     const j = await r.json().catch(() => ({}));
     throw new Error(j.erro ?? `Erro ${r.status}`);

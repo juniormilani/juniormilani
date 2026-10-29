@@ -37,12 +37,32 @@ function BotaoTema() {
   );
 }
 
+function Usuario() {
+  const [usuario, setUsuario] = useState<string | null>(null);
+  useEffect(() => {
+    fetch('/api/sessao').then((r) => (r.ok ? r.json() : null)).then((d) => setUsuario(d?.usuario ?? null)).catch(() => {});
+  }, []);
+  const sair = async () => {
+    await fetch('/api/logout', { method: 'POST' }).catch(() => {});
+    window.location.replace('/login');
+  };
+  return (
+    <div className="usuario-topo">
+      {usuario && <span className="nome-usuario">{usuario}</span>}
+      <button className="btn fantasma pequeno" onClick={sair} title="Sair" aria-label="Sair da conta">Sair</button>
+    </div>
+  );
+}
+
 export function Navegacao() {
   const path = usePathname();
   const [base, setBase] = useState<Importacao[]>([]);
+  const naLogin = path === '/login';
   useEffect(() => {
+    if (naLogin) return;
     fetch('/api/opcoes').then((r) => r.json()).then((d) => setBase(d.importacoes ?? [])).catch(() => {});
-  }, []);
+  }, [naLogin]);
+  if (naLogin) return null;
   const ativo = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
   const rf = base.find((b) => b.fonte === 'receita_federal');
   const ant = base.find((b) => b.fonte === 'rntrc');
@@ -66,6 +86,7 @@ export function Navegacao() {
           {ant ? <span className="texto-longo"> · RNTRC {ant.referencia}</span> : null}
         </div>
         <BotaoTema />
+        <Usuario />
       </header>
       <nav className="tabbar" aria-label="Principal (celular)">
         {ITENS.map((i) => (

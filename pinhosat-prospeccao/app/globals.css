@@ -70,6 +70,15 @@ button { font: inherit; }
 .base-info .ponto { width: 7px; height: 7px; border-radius: 50%; background: var(--alto); }
 .tabbar { display: none; }
 .botao-tema { margin-left: 4px; }
+.login-pagina { min-height: calc(100vh - 40px); min-height: calc(100dvh - 40px); display: grid; place-items: center; padding: 16px 0; }
+.login-cartao { width: min(400px, 100%); padding: 28px; }
+.login-marca { display: flex; gap: 12px; align-items: center; margin-bottom: 18px; }
+.login-marca .logo { width: 42px; height: 42px; border-radius: 10px; background: var(--brand); color: var(--on-brand); display: grid; place-items: center; }
+.login-marca strong { font-size: 17px; }
+.campo-senha { position: relative; }
+.campo-senha input { padding-right: 84px; }
+.campo-senha .btn { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); }
+.usuario-topo { display: flex; align-items: center; gap: 2px; color: var(--muted); font-size: 12px; margin-left: 4px; }
 .so-leitor { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 main { padding: 20px 24px; max-width: 1720px; margin: 0 auto; }
@@ -80,7 +89,7 @@ main { padding: 20px 24px; max-width: 1720px; margin: 0 auto; }
 
 /* ---------- Formulários ---------- */
 label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin: 10px 0 4px; }
-input[type=text], input[type=number], input[type=date], input[type=search], select, textarea {
+input[type=text], input[type=number], input[type=date], input[type=search], input[type=password], select, textarea {
   width: 100%; padding: 8px 10px; border: 1px solid var(--border-strong); border-radius: 7px; background: var(--surface);
   color: var(--text); font: inherit; min-height: 36px; min-width: 0; max-width: 100%; }
 textarea { min-height: 70px; resize: vertical; }
@@ -284,6 +293,8 @@ dl.campos dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
   .topo .nav { display: none; }
   .base-info { font-size: 11px; }
   .base-info .texto-longo { display: none; }
+  .usuario-topo .nome-usuario { display: none; }
+  main:has(.login-pagina) { padding-bottom: 24px; }
   .tabbar { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); overflow: hidden; position: fixed; left: 0; right: 0; bottom: 0; z-index: 35;
     background: var(--surface); border-top: 1px solid var(--border); padding-bottom: env(safe-area-inset-bottom); height: calc(var(--tabbar) + env(safe-area-inset-bottom)); }
   .tabbar a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 10.5px; color: var(--muted); font-weight: 600; }
@@ -292,7 +303,7 @@ dl.campos dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
   .sub { font-size: 14px; }
   .cabecalho-pagina .sub { display: none; }
 
-  input[type=text], input[type=number], input[type=date], input[type=search], select, textarea { font-size: 16px; min-height: 44px; }
+  input[type=text], input[type=number], input[type=date], input[type=search], input[type=password], select, textarea { font-size: 16px; min-height: 44px; }
   .btn { min-height: 44px; white-space: normal; text-align: center; }
   .pilula { white-space: normal; }
   .btn.pequeno { min-height: 34px; font-size: 13px; }
