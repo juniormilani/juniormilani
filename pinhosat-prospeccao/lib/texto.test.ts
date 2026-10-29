@@ -77,3 +77,28 @@ test('CSV: BOM, separador ; e proteção contra fórmulas', () => {
   assert.ok(csv.startsWith('﻿Razão social;Pontuação'));
   assert.ok(csv.includes(`"'=HYPERLINK(""x"");1";-5`));
 });
+
+test('ICP: validação completa padrões e recusa pesos inválidos', async () => {
+  const { validarCriterios } = await import('./icp');
+  const c = validarCriterios({ segmentos: { peso: 4, ids: [1, '2', 'x'] }, porte: { valores: ['05', '99'] } });
+  assert.deepEqual(c.segmentos.ids, [1, 2]);
+  assert.deepEqual(c.porte.valores, ['05']);
+  assert.equal(c.eliminatorios.mei, true);
+  assert.throws(() => validarCriterios({ rntrc: { peso: 11 } }));
+  assert.throws(() => validarCriterios({ segmentos: { peso: 0 }, porte: { peso: 0 }, capital: { peso: 0 }, idade: { peso: 0 },
+    estabelecimentos: { peso: 0 }, rntrc: { peso: 0 }, localizacao: { peso: 0 }, contato: { peso: 0 } }));
+});
+
+test('ICP: score ponderado, eliminatórios e filtros por faixa entram na consulta', async () => {
+  const { validarCriterios } = await import('./icp');
+  const icp = { id: 1, nome: 'Teste', descricao: null, padrao: true, municipiosIdeais: ['8589'],
+    criterios: validarCriterios({ segmentos: { peso: 3, ids: [1] }, localizacao: { peso: 2, regioes: [1] } }) };
+  const { sql, params } = montarConsulta({ icpFaixas: ['A', 'B'] }, [], icp);
+  assert.match(sql, /icp_seg_tipo/);
+  assert.match(sql, /coalesce\(b\.opcao_mei, false\)/);
+  assert.match(sql, /icp_faixa = any/);
+  assert.match(sql, /order by icp_score desc/);
+  assert.ok(params.some((p) => Array.isArray(p) && p.includes('8589')));
+  // Soma dos pesos padrão + os definidos: segmento 3, porte 2, capital 1, idade 1, rntrc 2, localização 2, contato 1 = 12
+  assert.match(sql, /\* 100\.0 \/ 12/);
+});

@@ -11,12 +11,13 @@ async function idDe(ctx: Ctx) {
   return id;
 }
 
-export const GET = rota(async (_req: Request, ctx: Ctx) => {
+export const GET = rota(async (req: Request, ctx: Ctx) => {
   const id = await idDe(ctx);
   const [lista] = await query('select * from listas where id = $1', [id]);
   if (!lista) return ok({ erro: 'Lista não encontrada.' }, 404);
   const itens = await query<{ cnpj: string }>('select cnpj from lista_itens where lista_id = $1', [id]);
-  const empresas = await empresasPorCnpj(itens.map((i) => i.cnpj));
+  const icp = Number(new URL(req.url).searchParams.get('icp')) || undefined;
+  const empresas = await empresasPorCnpj(itens.map((i) => i.cnpj), undefined, icp);
   const exportacoes = await query(
     'select formato, quantidade, usuario, criado_em from exportacoes where lista_id = $1 order by criado_em desc limit 20', [id]);
   return ok({ lista, empresas, exportacoes });

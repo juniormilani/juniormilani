@@ -15,7 +15,7 @@ export function Navegacao() {
     ['/', 'Buscar empresas'],
     ['/listas', 'Listas salvas'],
     ['/acompanhamento', 'Acompanhamento'],
-    ['/configuracoes', 'Segmentos e regiões'],
+    ['/configuracoes', 'ICP e segmentos'],
   ];
   const rf = base.find((b) => b.fonte === 'receita_federal');
   const ant = base.find((b) => b.fonte === 'rntrc');

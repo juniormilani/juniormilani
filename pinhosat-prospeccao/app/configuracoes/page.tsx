@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { formatarCnae } from '@/lib/texto';
 import { api, useToast } from '@/components/util';
+import { EditorIcp } from '@/components/EditorIcp';
 
 interface Segmento {
   id: number; nome: string; grupo: string; prioridade: 'alta' | 'media' | 'baixa'; cnaes: string[]; palavras_chave: string[];
@@ -72,8 +73,11 @@ export default function Configuracoes() {
 
   return (
     <>
-      <h1>Segmentos e regiões</h1>
-      <p className="sub">Cadastre novos segmentos (por CNAE e/ou palavras-chave no nome) e regiões personalizadas sem alterar o sistema.</p>
+      <h1>ICP, segmentos e regiões</h1>
+      <p className="sub">Defina os perfis de cliente ideal, cadastre segmentos (por CNAE e/ou palavras-chave no nome) e regiões personalizadas sem alterar o sistema.</p>
+      <h2>Perfis de cliente ideal (ICP)</h2>
+      <EditorIcp onMensagem={mostrar} />
+      <h2>Segmentos</h2>
       {erro && <div className="erro-box">{erro}</div>}
 
       {form && (

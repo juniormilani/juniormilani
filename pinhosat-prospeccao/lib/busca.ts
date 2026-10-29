@@ -2,19 +2,13 @@
 // Tudo é calculado no SQL para permitir ordenar e filtrar por potencial sobre o resultado inteiro.
 
 import { LIMITE_MAXIMO, type FiltrosBusca } from './filtros';
+import { expressoesIcp, faixaSql, type IcpCarregado } from './icp';
+import { Params, txt } from './sql';
 import { normalizar, soDigitos } from './texto';
 
 /** Provedores de e-mail gratuitos (regex SQL): e-mail fora desta lista é tratado como corporativo. */
 export const REGEX_EMAIL_GRATUITO =
   '@(gmail|hotmail|outlook|live|yahoo|ymail|bol|uol|terra|ig|msn|icloud|me|globo|r7|zipmail|pop|ibest|oi|brturbo|protonmail)\\.|contab|contador|escritorio';
-
-class Params {
-  readonly valores: unknown[] = [];
-  add(v: unknown): string {
-    this.valores.push(v);
-    return `$${this.valores.length}`;
-  }
-}
 
 /** Critérios da pontuação. Cada um vira um termo da soma e um "motivo" legível. */
 export interface Criterio {
@@ -22,8 +16,6 @@ export interface Criterio {
   pontos: number;
   motivo: string;     // expressão SQL que gera o texto exibido ao usuário
 }
-
-const txt = (s: string) => `'${s.replace(/'/g, "''")}'`;
 
 export function criteriosPontuacao(): Criterio[] {
   return [
@@ -78,8 +70,9 @@ export interface ConsultaMontada {
  * "empresa_segmento" (ver lib/classificacao.ts); aqui só escolhemos o melhor segmento de cada empresa
  * entre os selecionados (ou entre todos os ativos, se nenhum foi selecionado).
  */
-export function montarConsulta(f: FiltrosBusca, regioesMunicipios: string[] = []): ConsultaMontada {
+export function montarConsulta(f: FiltrosBusca, regioesMunicipios: string[] = [], icp: IcpCarregado | null = null): ConsultaMontada {
   const p = new Params();
+  const ic = icp ? expressoesIcp(icp, p) : null;
   const where: string[] = [];
   const amplo = (f.modoSegmento ?? 'amplo') === 'amplo';
   const selecionados = f.segmentos?.length ? f.segmentos : null;
@@ -174,9 +167,13 @@ export function montarConsulta(f: FiltrosBusca, regioesMunicipios: string[] = []
     .map((c) => `case when ${c.quando} then (${c.motivo}) || ' (${c.pontos > 0 ? '+' : ''}${c.pontos})' end`)
     .join(', ')}], null)`;
 
-  const filtroPotencial = f.potencial?.length ? `where nivel = any(${p.add(f.potencial)}::text[])` : '';
+  const filtrosFinais: string[] = [];
+  if (f.potencial?.length) filtrosFinais.push(`nivel = any(${p.add(f.potencial)}::text[])`);
+  if (ic && f.icpFaixas?.length) filtrosFinais.push(`icp_faixa = any(${p.add(f.icpFaixas)}::text[])`);
+  const filtroPotencial = filtrosFinais.length ? `where ${filtrosFinais.join(' and ')}` : '';
 
   const ordem: Record<string, string> = {
+    icp: ic ? `icp_score desc, pontos desc, razao_social` : `pontos desc, razao_social`,
     potencial: `case nivel when 'alto' then 0 when 'medio' then 1 else 2 end, pontos desc, razao_social`,
     cidade: `municipio_nome, razao_social`,
     segmento: `segmento nulls last, pontos desc`,
@@ -185,7 +182,7 @@ export function montarConsulta(f: FiltrosBusca, regioesMunicipios: string[] = []
     abertura: `data_inicio nulls last`,
     capital: `capital_social desc nulls last`,
   };
-  const orderBy = ordem[f.ordenarPor ?? 'potencial'];
+  const orderBy = ordem[f.ordenarPor ?? (ic ? 'icp' : 'potencial')];
   const limite = Math.min(Math.max(1, Math.trunc(f.limite ?? 200)), LIMITE_MAXIMO);
   const pagina = Math.max(0, Math.trunc(f.pagina ?? 0));
 
@@ -196,6 +193,10 @@ with base as materialized (
     p.status as prospeccao_status, p.ultimo_contato, p.proximo_contato,
     (e.telefone1 is not null or e.telefone2 is not null) as tem_telefone,
     (e.email is not null) as tem_email,
+    (e.telefone1 ~ '^[0-9]{2}9[0-9]{8}$' or e.telefone2 ~ '^[0-9]{2}9[0-9]{8}$') as tem_celular,${ic?.segmentosIcp.length ? `
+    (select min(ei.tipo) from empresa_segmento ei
+      where ei.cnpj = e.cnpj and ei.segmento_id = any(${p.add(ic.segmentosIcp)}::int[])) as icp_seg_tipo,` : `
+    null::smallint as icp_seg_tipo,`}
     (e.email is not null and e.email !~* ${p.add(REGEX_EMAIL_GRATUITO)}) as email_corporativo,
     greatest(coalesce(g.estabelecimentos, 1) - 1, 0) as filiais,
     sm.segmento_id, sm.tipo as match_tipo, sm.nome as segmento, sm.prioridade as segmento_prioridade
@@ -209,12 +210,14 @@ with base as materialized (
 ), clas as (
   select b.*,
     (${somaPontos}) as pontos,
-    ${EVIDENCIA_FROTA} as evidencia_frota
+    ${EVIDENCIA_FROTA} as evidencia_frota,
+    ${ic ? ic.score : 'null::int'} as icp_score
   from base b cross join lateral (select b.segmento as nome, b.segmento_prioridade as prioridade) s
 ), fin as (
   select clas.*,
     case when pontos >= ${LIMIARES.alto} and evidencia_frota then 'alto'
-         when pontos >= ${LIMIARES.medio} then 'medio' else 'verificar' end as nivel
+         when pontos >= ${LIMIARES.medio} then 'medio' else 'verificar' end as nivel,
+    ${ic ? faixaSql('icp_score') : 'null::text'} as icp_faixa
   from clas
 ), pag as (
   select fin.*, count(*) over () as total from fin ${filtroPotencial}
@@ -224,6 +227,7 @@ with base as materialized (
 select pag.*,
   -- Motivos só para as linhas da página (os mesmos critérios da soma de pontos).
   (select ${motivos} from (select pag.*) b, (select pag.segmento as nome, pag.segmento_prioridade as prioridade) s) as motivos,
+  ${ic ? `(select ${ic.detalhe} from (select pag.*) b)` : `'{}'::text[]`} as icp_detalhe,
   (select coalesce(json_agg(json_build_object('id', l.id, 'nome', l.nome) order by l.nome), '[]')
      from lista_itens li join listas l on l.id = li.lista_id where li.cnpj = pag.cnpj) as listas,
   (select coalesce(json_agg(json_build_object('tipo', c.tipo, 'valor', c.valor, 'fonte', c.fonte, 'verificado', c.verificado)), '[]')

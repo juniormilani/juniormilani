@@ -14,6 +14,8 @@ uma busca real, custos, prazo, escopo e caminhos de expansão. O código do MVP 
   diário nem dependência de raspagem de sites.
 - **A Receita já traz telefone e e-mail.** No RS, 87% dos estabelecimentos importados têm telefone e 74% têm e-mail
   declarado. Esses contatos têm limitações reais, descritas na seção 4.
+- **Score por ICP (perfil de cliente ideal).** Um perfil por linha de produto (rastreamento, câmeras de baú,
+  videomonitoramento), com score de 0 a 100 e faixas A/B/C/D. Pesos e critérios ficam editáveis pela equipe.
 - **Classificação de potencial explicável.** Cada ponto da pontuação tem um motivo visível. Por exemplo, “Registro
   ATIVO no RNTRC (+25)” ou “Porte EPP (+10)”. O sistema não inventa a quantidade de veículos nem contatos.
 - **Desempenho medido.** Buscas típicas por segmento e região levam cerca de 1 s sobre 2,4 milhões de estabelecimentos
@@ -139,7 +141,11 @@ O primeiro resultado é uma empresa de efluentes de Canoas com CNAE principal 37
 - Filtros cadastrais: situação, porte, matriz/filial, tempo de atividade, capital social, excluir MEI.
 - Filtros comerciais: com telefone, celular, e-mail, e-mail de domínio próprio, site verificado, RNTRC ativo,
   potencial, fora da base / não contatadas / já na base.
-- Pontuação de potencial explicável e ordenação por potencial, cidade, segmento, porte, capital ou abertura.
+- **Score ICP**: perfis configuráveis com 8 critérios ponderados (segmento, porte, capital, tempo de atividade,
+  estrutura, RNTRC, localização, contato) e eliminatórios. Score de 0 a 100, faixas A–D, detalhamento por critério,
+  filtro e ordenação por faixa, e troca de perfil na busca, nas listas e na exportação.
+- Pontuação de potencial de frota explicável e ordenação por ICP, potencial, cidade, segmento, porte, capital ou
+  abertura.
 - Seleção, remoção individual, quantidade de resultados (até 5.000 por página) e paginação.
 - Listas nomeadas por campanha, adição a listas existentes e aviso de duplicados por CNPJ e por grupo (matriz/filial).
 - Exportação para Excel e CSV com escolha de campos e histórico de exportações.
@@ -151,7 +157,18 @@ O primeiro resultado é uma empresa de efluentes de Canoas com CNAE principal 37
   importação, exclusão e oposição com um clique (“Não prospectar” some de todas as buscas), acesso só com login.
 - Atualização mensal por comando. A reimportação preserva listas e histórico.
 
-### Fora do MVP (fases seguintes)
+### Fora do MVP (fases seguintes, em ordem de retorno esperado)
+- **Calibrar o ICP com resultados reais:** relatório de conversão por faixa e critério a partir dos status
+  “Cliente” / “Sem interesse”, com sugestão de pesos.
+- **Importar a carteira atual de clientes** (CNPJs): tirá-la da prospecção e usá-la como referência para o ICP
+  (“empresas parecidas com nossos clientes”).
+- **Sinais de compra mensais:** comparar uma competência da Receita com a anterior para detectar nova filial,
+  aumento de capital, mudança de porte, novo RNTRC e empresa recém-aberta em segmento do ICP. Vira a lista
+  “leads quentes do mês”.
+- **Distribuição de leads por vendedor:** responsável, fila por ICP, bloqueio para dois vendedores não abordarem
+  a mesma empresa e metas.
+- **Um lead por empresa:** opção de manter só o melhor estabelecimento (matriz ou maior score) de cada CNPJ raiz
+  ao salvar a lista.
 - Enriquecimento pago de contatos (API comercial ou Google Places) e confirmação automática de WhatsApp.
 - Integração com WhatsApp Business API e automação de follow-up.
 - Integração com CRM (RD Station, Pipedrive, HubSpot) ou com o PinhoSystem.

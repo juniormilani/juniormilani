@@ -2,7 +2,7 @@ import type { NivelPotencial } from './status';
 
 export type ModoSegmento = 'principal' | 'amplo';
 export type FiltroProspeccao = 'todas' | 'fora_da_base' | 'nao_contatadas' | 'na_base';
-export type Ordenacao = 'potencial' | 'cidade' | 'segmento' | 'porte' | 'razao_social' | 'abertura' | 'capital';
+export type Ordenacao = 'icp' | 'potencial' | 'cidade' | 'segmento' | 'porte' | 'razao_social' | 'abertura' | 'capital';
 
 export interface FiltrosBusca {
   texto?: string;                 // nome, CNPJ ou atividade (descrição do CNAE)
@@ -29,6 +29,8 @@ export interface FiltrosBusca {
   prospeccao?: FiltroProspeccao;
   excluirNaoProspectar?: boolean; // padrão: true (respeita pedidos de não contato)
   potencial?: NivelPotencial[];
+  icpId?: number;                 // perfil de ICP usado no score (padrão: o perfil marcado como padrão)
+  icpFaixas?: ('A' | 'B' | 'C' | 'D')[];
   ordenarPor?: Ordenacao;
   limite?: number;
   pagina?: number;
@@ -85,7 +87,9 @@ export function sanitizarFiltros(raw: unknown): FiltrosBusca {
     prospeccao: oneOf(r.prospeccao, ['todas', 'fora_da_base', 'nao_contatadas', 'na_base'] as const),
     excluirNaoProspectar: bool(r.excluirNaoProspectar),
     potencial: arr(r.potencial, (x) => oneOf(x, ['alto', 'medio', 'verificar'] as const) ?? null),
-    ordenarPor: oneOf(r.ordenarPor, ['potencial', 'cidade', 'segmento', 'porte', 'razao_social', 'abertura', 'capital'] as const),
+    icpId: int(r.icpId) ?? undefined,
+    icpFaixas: arr(r.icpFaixas, (x) => oneOf(x, ['A', 'B', 'C', 'D'] as const) ?? null),
+    ordenarPor: oneOf(r.ordenarPor, ['icp', 'potencial', 'cidade', 'segmento', 'porte', 'razao_social', 'abertura', 'capital'] as const),
     limite: num(r.limite),
     pagina: num(r.pagina),
   };

@@ -133,3 +133,10 @@ dl.campos dd { margin: 0; }
   border-radius: 999px; font-size: 12px; }
 .chip button { border: 0; background: none; cursor: pointer; color: inherit; padding: 0; font-size: 13px; line-height: 1; }
 .lista-municipios { max-height: 180px; overflow: auto; border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; }
+
+.icp { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; white-space: nowrap; }
+.icp .letra { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; font-size: 12px; color: #fff; }
+.icp .letra.A { background: #1f7a4f; } .icp .letra.B { background: #3f8f6a; } .icp .letra.C { background: #b8860b; } .icp .letra.D { background: #8a949e; }
+.icp .num { font-variant-numeric: tabular-nums; }
+.barra-icp { height: 4px; border-radius: 2px; background: var(--border); margin-top: 4px; width: 64px; overflow: hidden; }
+.barra-icp > span { display: block; height: 100%; background: var(--brand); }

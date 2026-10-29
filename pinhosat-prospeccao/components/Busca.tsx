@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Empresa } from '@/lib/empresa';
 import type { FiltrosBusca } from '@/lib/filtros';
 import { NIVEL_POTENCIAL, PORTE, SITUACAO_CADASTRAL, STATUS_PROSPECCAO } from '@/lib/status';
+import { DESCRICAO_FAIXA } from '@/lib/icp';
 import { TabelaEmpresas, type ColunaOrdem } from './TabelaEmpresas';
 import { ModalExportar } from './ModalExportar';
 import { ModalSalvarLista } from './ModalSalvarLista';
@@ -11,11 +12,11 @@ import { api, useToast } from './util';
 interface Segmento { id: number; nome: string; grupo: string; prioridade: 'alta' | 'media' | 'baixa' }
 interface Regiao { id: number; nome: string; uf: string; qtd: number }
 interface Municipio { codigo: string; nome: string }
-interface Opcoes { segmentos: Segmento[]; regioes: Regiao[]; ufs: string[]; municipios: Municipio[] }
+interface Opcoes { segmentos: Segmento[]; regioes: Regiao[]; ufs: string[]; municipios: Municipio[]; icps: { id: number; nome: string; padrao: boolean }[] }
 
 const PADRAO: FiltrosBusca = {
   ufs: ['RS'], situacoes: ['02'], modoSegmento: 'amplo', excluirMei: true, prospeccao: 'todas',
-  ordenarPor: 'potencial', limite: 200, segmentos: [], regioes: [], municipios: [], portes: [], potencial: [],
+  ordenarPor: 'icp', limite: 200, segmentos: [], regioes: [], municipios: [], portes: [], potencial: [], icpFaixas: [],
 };
 const CHAVE = 'pinhosat.filtros';
 const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
@@ -26,7 +27,7 @@ export function Busca() {
   const [municipiosNomes, setMunicipiosNomes] = useState<Record<string, string>>({});
   const [buscaMun, setBuscaMun] = useState('');
   const [cnaesTexto, setCnaesTexto] = useState('');
-  const [res, setRes] = useState<{ total: number; empresas: Empresa[]; ms: number } | null>(null);
+  const [res, setRes] = useState<{ total: number; empresas: Empresa[]; ms: number; icp: { id: number; nome: string } | null } | null>(null);
   const [ocultos, setOcultos] = useState<Set<string>>(new Set());
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [carregando, setCarregando] = useState(false);
@@ -74,7 +75,7 @@ export function Busca() {
     setF(filtros);
     try {
       try { localStorage.setItem(CHAVE, JSON.stringify({ f: { ...filtros, pagina: 0 }, municipiosNomes })); } catch { /* ignora */ }
-      const r = await api<{ total: number; empresas: Empresa[]; ms: number }>('/api/busca', { body: filtros });
+      const r = await api<NonNullable<typeof res>>('/api/busca', { body: filtros });
       setRes(r);
       setFiltrosUsados(filtros);
       setSel(new Set());
@@ -89,7 +90,8 @@ export function Busca() {
   const visiveis = (res?.empresas ?? []).filter((e) => !ocultos.has(e.cnpj));
   const selecionadas = [...sel];
   const contagem = { alto: 0, medio: 0, verificar: 0 } as Record<string, number>;
-  visiveis.forEach((e) => contagem[e.nivel]++);
+  const faixas = { A: 0, B: 0, C: 0, D: 0 } as Record<string, number>;
+  visiveis.forEach((e) => { contagem[e.nivel]++; if (e.icp) faixas[e.icp.faixa]++; });
 
   const nomeSugerido = useMemo(() => {
     const segs = (op?.segmentos ?? []).filter((s) => f.segmentos?.includes(s.id)).map((s) => s.nome);
@@ -131,6 +133,19 @@ export function Busca() {
         <label htmlFor="texto" style={{ marginTop: 0 }}>Nome, CNPJ ou atividade</label>
         <input id="texto" type="search" value={f.texto ?? ''} placeholder="Ex.: desentupidora, 12.345.678/0001-90, transporte"
           onChange={(e) => set('texto', e.target.value)} onKeyDown={(e) => e.key === 'Enter' && gerar()} />
+
+        <label htmlFor="icp">Perfil de cliente ideal (ICP)</label>
+        <select id="icp" value={f.icpId ?? ''} onChange={(e) => set('icpId', e.target.value ? Number(e.target.value) : undefined)}>
+          {(op?.icps ?? []).map((i) => <option key={i.id} value={i.padrao ? '' : i.id}>{i.nome}{i.padrao ? ' (padrão)' : ''}</option>)}
+        </select>
+        <label>Faixa ICP</label>
+        <div className="chips">
+          {(['A', 'B', 'C', 'D'] as const).map((x) => (
+            <label key={x} className="check" style={{ margin: 0 }} title={DESCRICAO_FAIXA[x]}>
+              <input type="checkbox" checked={!!f.icpFaixas?.includes(x)} onChange={(e) => alternar('icpFaixas', x, e.target.checked)} /> {x}
+            </label>
+          ))}
+        </div>
 
         <h3>Segmentos</h3>
         <div className="linha" style={{ marginBottom: 6 }}>
@@ -261,7 +276,7 @@ export function Busca() {
           <div>
             <label htmlFor="ord">Ordenar por</label>
             <select id="ord" value={f.ordenarPor} onChange={(e) => set('ordenarPor', e.target.value as FiltrosBusca['ordenarPor'])}>
-              <option value="potencial">Potencial</option><option value="cidade">Cidade</option><option value="segmento">Segmento</option>
+              <option value="icp">Score ICP</option><option value="potencial">Potencial de frota</option><option value="cidade">Cidade</option><option value="segmento">Segmento</option>
               <option value="porte">Porte</option><option value="capital">Capital social</option><option value="abertura">Mais antigas</option>
               <option value="razao_social">Razão social</option>
             </select>
@@ -293,6 +308,7 @@ export function Busca() {
               <span className="info-res">
                 <strong>{res.total.toLocaleString('pt-BR')}</strong> empresas encontradas
                 {res.total > visiveis.length && <> · mostrando {visiveis.length}</>} · {(res.ms / 1000).toFixed(1)}s
+                {res.icp && <> · ICP “{res.icp.nome}”: {(['A', 'B', 'C', 'D'] as const).map((x) => <span key={x} className="icp" style={{ marginLeft: 6 }}><span className={`letra ${x}`}>{x}</span>{faixas[x]}</span>)}</>}
                 {' '}<span className="pilula alto">{contagem.alto} alto</span> <span className="pilula medio">{contagem.medio} médio</span> <span className="pilula verificar">{contagem.verificar} a verificar</span>
               </span>
               <span className="mudo">{sel.size} selecionada{sel.size === 1 ? '' : 's'}</span>
@@ -331,7 +347,7 @@ export function Busca() {
           </>
         )}
       </section>
-      {modal === 'exportar' && <ModalExportar cnpjs={selecionadas} onFechar={() => setModal(null)} />}
+      {modal === 'exportar' && <ModalExportar cnpjs={selecionadas} icpId={res?.icp?.id} onFechar={() => setModal(null)} />}
       {modal === 'salvar' && (
         <ModalSalvarLista cnpjs={selecionadas} filtros={filtrosUsados} nomeSugerido={nomeSugerido}
           onFechar={() => setModal(null)} onSalvo={(m) => { mostrar(m); gerar(f.pagina ?? 0); }} />

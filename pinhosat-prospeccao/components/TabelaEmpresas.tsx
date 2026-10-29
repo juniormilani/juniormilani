@@ -5,7 +5,7 @@ import type { Empresa } from '@/lib/empresa';
 import { formatarTelefone } from '@/lib/texto';
 import { dataBr } from './util';
 
-export type ColunaOrdem = 'potencial' | 'razao_social' | 'segmento' | 'cidade' | 'porte' | 'abertura';
+export type ColunaOrdem = 'icp' | 'potencial' | 'razao_social' | 'segmento' | 'cidade' | 'porte' | 'abertura';
 
 interface Props {
   empresas: Empresa[];
@@ -23,6 +23,16 @@ export function PilulaPotencial({ e }: { e: Empresa }) {
     <span className={`pilula ${e.nivel}`} title={e.motivos.join('\n')}>
       {e.nivelTexto} · {e.pontos}
     </span>
+  );
+}
+
+export function PilulaIcp({ e }: { e: Empresa }) {
+  if (!e.icp) return <span className="vazio">—</span>;
+  return (
+    <div title={`${e.icp.perfil}\n${e.icp.detalhe.join('\n')}`}>
+      <span className="icp"><span className={`letra ${e.icp.faixa}`}>{e.icp.faixa}</span><span className="num">{e.icp.score}</span></span>
+      <div className="barra-icp"><span style={{ width: `${e.icp.score}%` }} /></div>
+    </div>
   );
 }
 
@@ -75,6 +85,7 @@ export function TabelaEmpresas({ empresas, selecionados, onSelecionar, onSelecio
         <thead>
           <tr>
             <th><input type="checkbox" aria-label="Selecionar todas" checked={todos} onChange={(ev) => onSelecionarTodos(ev.target.checked)} /></th>
+            {th('icp', 'ICP')}
             {th('potencial', 'Potencial')}
             {th('razao_social', 'Empresa')}
             {th('segmento', 'Segmento / CNAE')}
@@ -93,6 +104,7 @@ export function TabelaEmpresas({ empresas, selecionados, onSelecionar, onSelecio
               <Fragment key={e.cnpj}>
                 <tr className={sel ? 'sel' : ''}>
                   <td><input type="checkbox" aria-label={`Selecionar ${e.razaoSocial}`} checked={sel} onChange={(ev) => onSelecionar(e.cnpj, ev.target.checked)} /></td>
+                  <td><PilulaIcp e={e} /></td>
                   <td>
                     <PilulaPotencial e={e} />
                     <div><button className="btn pequeno" style={{ marginTop: 4 }} onClick={() => setAberta(aberta === e.cnpj ? null : e.cnpj)}>
@@ -132,10 +144,14 @@ export function TabelaEmpresas({ empresas, selecionados, onSelecionar, onSelecio
                 {aberta === e.cnpj && (
                   <tr className="detalhe">
                     <td></td>
-                    <td colSpan={acaoLinha ? 8 : 7}>
+                    <td colSpan={acaoLinha ? 9 : 8}>
                       <div className="dois">
                         <div>
-                          <strong>Como a pontuação foi calculada</strong>
+                          {e.icp && (<>
+                            <strong>Score ICP {e.icp.score} ({e.icp.faixa}) — {e.icp.perfil}</strong>
+                            <ul className="motivos">{e.icp.detalhe.map((m) => <li key={m}>{m}</li>)}</ul>
+                          </>)}
+                          <strong>Potencial de frota: como a pontuação foi calculada</strong>
                           <ul className="motivos">{e.motivos.map((m) => <li key={m}>{m}</li>)}</ul>
                           {e.nivel !== 'alto' && e.pontos >= 60 && (
                             <div className="mudo">Pontuação alta, mas sem evidência de frota (RNTRC ativo ou CNAE principal de segmento prioritário com porte/capital relevante).</div>

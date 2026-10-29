@@ -68,7 +68,7 @@ export default function EmpresaDetalhe({ params }: { params: Promise<{ cnpj: str
   return (
     <>
       <p className="mudo"><Link href="/">← Voltar à busca</Link></p>
-      <h1>{e.razaoSocial} <PilulaPotencial e={e} /></h1>
+      <h1>{e.razaoSocial} <PilulaPotencial e={e} />{e.icp && <span className="pilula" style={{ marginLeft: 6 }}>ICP {e.icp.score} · {e.icp.faixa}</span>}</h1>
       <p className="sub">{e.nomeFantasia && <>{e.nomeFantasia} · </>}<span className="mono">{e.cnpjFormatado}</span> · {e.matriz ? 'Matriz' : 'Filial'} · {e.cidade}/{e.uf}</p>
       <div className="grade-detalhe">
         <div>
@@ -88,8 +88,15 @@ export default function EmpresaDetalhe({ params }: { params: Promise<{ cnpj: str
               <dt>Fonte</dt><dd>{e.fonte} · atualizado em {dataBr(e.dataConsulta)}</dd>
             </dl>
           </section>
+          {e.icp && (
+            <section className="cartao pad" style={{ marginTop: 16 }}>
+              <h2>Score ICP: {e.icp.score} — faixa {e.icp.faixa}</h2>
+              <p className="mudo">Perfil “{e.icp.perfil}”. Cada critério mostra a aderência da empresa e o peso no perfil.</p>
+              <ul className="motivos">{e.icp.detalhe.map((m) => <li key={m}>{m}</li>)}</ul>
+            </section>
+          )}
           <section className="cartao pad" style={{ marginTop: 16 }}>
-            <h2>Por que este potencial?</h2>
+            <h2>Potencial de frota</h2>
             <ul className="motivos">{e.motivos.map((m) => <li key={m}>{m}</li>)}</ul>
             <p className="mudo">Alto potencial exige pontuação ≥ 60 e evidência de frota (registro ativo no RNTRC ou CNAE principal de segmento prioritário com porte EPP/Demais, capital ≥ R$ 100 mil ou filiais). A quantidade de veículos não está disponível nas fontes públicas.</p>
           </section>

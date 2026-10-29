@@ -41,6 +41,11 @@ async function main() {
       [r.nome, r.uf, rows.map((x) => x.codigo)]);
     console.log(`${r.nome}: ${rows.length} municípios`);
   }
+  // ICPs iniciais sem região definida passam a usar a Grande Porto Alegre e o Vale dos Sinos.
+  const icps = await db.query(`update icps set criterios = jsonb_set(criterios, '{localizacao,regioes}',
+      (select coalesce(jsonb_agg(id), '[]') from regioes where nome in ('Grande Porto Alegre (RMPA)', 'Vale dos Sinos')))
+    where coalesce(jsonb_array_length(criterios -> 'localizacao' -> 'regioes'), 0) = 0`);
+  if (icps.rowCount) console.log(`${icps.rowCount} perfis de ICP associados às regiões iniciais`);
   await db.end();
 }
 

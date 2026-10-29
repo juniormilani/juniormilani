@@ -37,6 +37,7 @@ export interface Empresa {
   nivel: NivelPotencial;
   nivelTexto: string;
   motivos: string[];
+  icp: { perfil: string; score: number; faixa: 'A' | 'B' | 'C' | 'D'; detalhe: string[] } | null;
   prospeccaoStatus: StatusProspeccao | null;
   prospeccaoStatusTexto: string;
   ultimoContato: string | null;
@@ -51,7 +52,7 @@ export interface Empresa {
 const FONTE_RF = 'Receita Federal (CNPJ)';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function linhaParaEmpresa(r: any, cnaesDesc: Map<string, string>): Empresa {
+export function linhaParaEmpresa(r: any, cnaesDesc: Map<string, string>, icpNome: string | null = null): Empresa {
   const extras: ContatoExtra[] = r.contatos_extra ?? [];
   const telefones = [r.telefone1, r.telefone2].filter(Boolean).map((t: string) => ({
     numero: t, formatado: formatarTelefone(t), celular: ehCelular(t), fonte: `${FONTE_RF} ${r.referencia}`,
@@ -101,6 +102,9 @@ export function linhaParaEmpresa(r: any, cnaesDesc: Map<string, string>): Empres
     nivel: r.nivel,
     nivelTexto: NIVEL_POTENCIAL[r.nivel as NivelPotencial],
     motivos: r.motivos ?? [],
+    icp: icpNome && r.icp_score !== null && r.icp_score !== undefined
+      ? { perfil: icpNome, score: Number(r.icp_score), faixa: r.icp_faixa, detalhe: r.icp_detalhe ?? [] }
+      : null,
     prospeccaoStatus: r.prospeccao_status ?? null,
     prospeccaoStatusTexto: r.prospeccao_status ? STATUS_PROSPECCAO[r.prospeccao_status as StatusProspeccao] : '',
     ultimoContato: r.ultimo_contato ? new Date(r.ultimo_contato).toISOString().slice(0, 10) : null,

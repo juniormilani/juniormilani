@@ -19,7 +19,9 @@ export default function ListaDetalhe({ params }: { params: Promise<{ id: string 
   const { id } = use(params);
   const [d, setD] = useState<Detalhe | null>(null);
   const [sel, setSel] = useState<Set<string>>(new Set());
-  const [ordem, setOrdem] = useState<ColunaOrdem>('potencial');
+  const [ordem, setOrdem] = useState<ColunaOrdem>('icp');
+  const [icps, setIcps] = useState<{ id: number; nome: string; padrao: boolean }[]>([]);
+  const [icpId, setIcpId] = useState<number | ''>('');
   const [filtroStatus, setFiltroStatus] = useState('');
   const [exportar, setExportar] = useState(false);
   const [editando, setEditando] = useState(false);
@@ -28,13 +30,15 @@ export default function ListaDetalhe({ params }: { params: Promise<{ id: string 
   const [erro, setErro] = useState<string | null>(null);
   const { mostrar, Toast } = useToast();
 
-  const carregar = () => api<Detalhe>(`/api/listas/${id}`).then((x) => { setD(x); setNome(x.lista.nome); setDescricao(x.lista.descricao ?? ''); })
+  const carregar = () => api<Detalhe>(`/api/listas/${id}${icpId ? `?icp=${icpId}` : ''}`).then((x) => { setD(x); setNome(x.lista.nome); setDescricao(x.lista.descricao ?? ''); })
     .catch((e) => setErro(e.message));
-  useEffect(() => { carregar(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { carregar(); }, [id, icpId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { api<{ icps: typeof icps }>('/api/opcoes').then((o) => setIcps(o.icps)).catch(() => {}); }, []);
 
   const empresas = useMemo(() => {
     const xs = (d?.empresas ?? []).filter((e) => !filtroStatus || (e.prospeccaoStatus ?? 'novo') === filtroStatus);
     const cmp: Record<ColunaOrdem, (a: Empresa, b: Empresa) => number> = {
+      icp: (a, b) => (b.icp?.score ?? -1) - (a.icp?.score ?? -1) || b.pontos - a.pontos,
       potencial: (a, b) => ORDEM_NIVEL[a.nivel] - ORDEM_NIVEL[b.nivel] || b.pontos - a.pontos,
       razao_social: (a, b) => a.razaoSocial.localeCompare(b.razaoSocial),
       segmento: (a, b) => a.segmento.localeCompare(b.segmento),
@@ -104,6 +108,9 @@ export default function ListaDetalhe({ params }: { params: Promise<{ id: string 
       <section className="cartao">
         <div className="barra-acoes">
           <span className="info-res">{empresas.length} empresas{filtroStatus && ` com status "${STATUS_PROSPECCAO[filtroStatus as keyof typeof STATUS_PROSPECCAO]}"`} · {sel.size} selecionadas</span>
+          <select aria-label="Perfil ICP" value={icpId} onChange={(e) => setIcpId(e.target.value ? Number(e.target.value) : '')} style={{ width: 'auto' }}>
+            {icps.map((i) => <option key={i.id} value={i.padrao ? '' : i.id}>ICP: {i.nome}</option>)}
+          </select>
           <button className="btn primario" onClick={() => setExportar(true)}>{sel.size ? 'Exportar selecionadas' : 'Exportar lista'}</button>
           <select aria-label="Alterar status" disabled={!sel.size} value="" onChange={(e) => statusLote(e.target.value)} style={{ width: 'auto' }}>
             <option value="">Marcar status…</option>
@@ -123,7 +130,7 @@ export default function ListaDetalhe({ params }: { params: Promise<{ id: string 
           <ul>{d.exportacoes.map((x, i) => <li key={i}>{dataBr(x.criado_em)} — {x.quantidade} empresas em {x.formato.toUpperCase()} por {x.usuario}</li>)}</ul>
         </section>
       )}
-      {exportar && <ModalExportar listaId={d.lista.id} cnpjs={sel.size ? [...sel] : undefined} onFechar={() => { setExportar(false); carregar(); }} />}
+      {exportar && <ModalExportar listaId={d.lista.id} icpId={icpId || undefined} cnpjs={sel.size ? [...sel] : undefined} onFechar={() => { setExportar(false); carregar(); }} />}
       <Toast />
     </>
   );

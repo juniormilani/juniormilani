@@ -36,6 +36,10 @@ export const CAMPOS: CampoExportacao[] = [
   { chave: 'capital_social', rotulo: 'Capital social (R$)', largura: 16, valor: (e) => e.capitalSocial },
   { chave: 'data_inicio', rotulo: 'Data de abertura', largura: 12, valor: (e) => e.dataInicio },
   { chave: 'rntrc', rotulo: 'RNTRC (ANTT)', largura: 20, valor: (e) => (e.rntrc ? `${e.rntrc.numero ?? ''} ${e.rntrc.situacao}`.trim() : '') },
+  { chave: 'icp_score', rotulo: 'Score ICP (0-100)', largura: 10, valor: (e) => e.icp?.score ?? null },
+  { chave: 'icp_faixa', rotulo: 'Faixa ICP', largura: 8, valor: (e) => e.icp?.faixa ?? '' },
+  { chave: 'icp_perfil', rotulo: 'Perfil ICP', largura: 30, valor: (e) => e.icp?.perfil ?? '' },
+  { chave: 'icp_detalhe', rotulo: 'Detalhe do score ICP', largura: 70, valor: (e) => juntar(e.icp?.detalhe ?? []) },
   { chave: 'potencial', rotulo: 'Potencial', largura: 16, valor: (e) => e.nivelTexto },
   { chave: 'pontos', rotulo: 'Pontuação', largura: 10, valor: (e) => e.pontos },
   { chave: 'motivos', rotulo: 'Motivos da classificação', largura: 60, valor: (e) => juntar(e.motivos) },
@@ -49,7 +53,7 @@ export const CAMPOS: CampoExportacao[] = [
 
 export const CAMPOS_PADRAO = [
   'razao_social', 'nome_fantasia', 'cnpj', 'situacao', 'cnae', 'segmento', 'cidade', 'uf', 'endereco',
-  'telefone', 'whatsapp', 'email', 'site', 'porte', 'potencial', 'fonte', 'data_consulta',
+  'telefone', 'whatsapp', 'email', 'site', 'porte', 'icp_score', 'icp_faixa', 'potencial', 'fonte', 'data_consulta',
 ];
 
 export function camposSelecionados(chaves: unknown): CampoExportacao[] {

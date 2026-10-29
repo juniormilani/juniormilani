@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 
-export class ErroValidacao extends Error {}
+import { ErroValidacao } from './erros';
+
+export { ErroValidacao };
 
 export function ok(dados: unknown, status = 200) {
   return NextResponse.json(dados, { status });

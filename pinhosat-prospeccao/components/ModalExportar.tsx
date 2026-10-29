@@ -13,7 +13,7 @@ function camposIniciais(): string[] {
   return CAMPOS_PADRAO;
 }
 
-export function ModalExportar({ cnpjs, listaId, onFechar }: { cnpjs?: string[]; listaId?: number; onFechar: () => void }) {
+export function ModalExportar({ cnpjs, listaId, icpId, onFechar }: { cnpjs?: string[]; listaId?: number; icpId?: number; onFechar: () => void }) {
   const [campos, setCampos] = useState<string[]>(camposIniciais);
   const [formato, setFormato] = useState<'xlsx' | 'csv'>('xlsx');
   const [erro, setErro] = useState<string | null>(null);
@@ -25,7 +25,7 @@ export function ModalExportar({ cnpjs, listaId, onFechar }: { cnpjs?: string[]; 
     setErro(null);
     try {
       try { localStorage.setItem(CHAVE, JSON.stringify(campos)); } catch { /* ignora */ }
-      await baixar('/api/exportar', { cnpjs, listaId, campos, formato });
+      await baixar('/api/exportar', { cnpjs, listaId, icpId, campos, formato });
       onFechar();
     } catch (e) {
       setErro((e as Error).message);

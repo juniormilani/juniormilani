@@ -24,7 +24,8 @@ export const POST = rota(async (req: Request) => {
   if (!alvo.length) throw new ErroValidacao('Nenhuma empresa selecionada.');
   const campos = camposSelecionados(b.campos);
   if (!campos.length) throw new ErroValidacao('Selecione ao menos um campo.');
-  const empresas = await empresasPorCnpj(alvo);
+  const icpId = Number.isInteger(Number(b.icpId)) && b.icpId !== null && b.icpId !== undefined ? Number(b.icpId) : undefined;
+  const empresas = await empresasPorCnpj(alvo, undefined, icpId);
   await query('insert into exportacoes (lista_id, formato, quantidade, campos, usuario) values ($1, $2, $3, $4, $5)',
     [listaId, formato, empresas.length, campos.map((c) => c.chave), usuarioDe(req)]);
 
