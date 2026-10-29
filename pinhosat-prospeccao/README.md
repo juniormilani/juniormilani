@@ -69,6 +69,23 @@ npm run build && npm start    # http://localhost:3000 (login com um usuário de 
 
 Testes e verificação: `npm test` e `npm run typecheck`.
 
+## Deploy (Vercel + Supabase)
+
+O ambiente de teste roda assim:
+
+- **Banco:** Supabase, em um schema isolado `pinhosat`. Um usuário próprio (`pinhosat_app`) só enxerga esse schema e
+  tem `search_path = pinhosat, extensions` e `jit = off` configurados no papel. A conexão usa o pooler IPv4
+  (`aws-1-sa-east-1.pooler.supabase.com:6543`).
+- **Aplicação:** Vercel, com Root Directory `pinhosat-prospeccao` e funções em `gru1` (São Paulo, ver `vercel.json`).
+- **Variáveis:**
+  - `DATABASE_URL` — URL do pooler;
+  - `DATABASE_SSL=true`;
+  - `DATABASE_POOLER=true` — pool menor e sem parâmetros de sessão;
+  - `APP_USERS` — login do app.
+- **Dados:** o plano gratuito tem 500 MB, então o teste usa um recorte (RS, ativas, sem MEI, nos 27 segmentos, cerca de
+  200 MB). Em produção com a base completa, use o Supabase Pro e rode os importadores apontando `DATABASE_URL` para
+  o banco.
+
 ## Estrutura
 
 ```
