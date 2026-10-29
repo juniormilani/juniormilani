@@ -1,11 +1,12 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { Empresa } from '@/lib/empresa';
 import { api } from './util';
 
 interface ListaResumo { id: number; nome: string; quantidade: number }
 
-export function ModalSalvarLista({ cnpjs, filtros, nomeSugerido, onFechar, onSalvo }: {
-  cnpjs: string[]; filtros: unknown; nomeSugerido: string; onFechar: () => void; onSalvo: (msg: string) => void;
+export function ModalSalvarLista({ cnpjs: todos, empresas = [], filtros, nomeSugerido, onFechar, onSalvo }: {
+  cnpjs: string[]; empresas?: Empresa[]; filtros: unknown; nomeSugerido: string; onFechar: () => void; onSalvo: (msg: string) => void;
 }) {
   const [modo, setModo] = useState<'nova' | 'existente'>('nova');
   const [nome, setNome] = useState(nomeSugerido);
@@ -14,6 +15,20 @@ export function ModalSalvarLista({ cnpjs, filtros, nomeSugerido, onFechar, onSal
   const [destino, setDestino] = useState<number | ''>('');
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const [umPorEmpresa, setUmPorEmpresa] = useState(true);
+
+  // Estabelecimentos repetidos da mesma empresa (raiz do CNPJ) entre os selecionados: mantém o de maior score.
+  const melhores = useMemo(() => {
+    const porRaiz = new Map<string, Empresa>();
+    for (const e of empresas) {
+      const atual = porRaiz.get(e.cnpj.slice(0, 8));
+      const nota = (x: Empresa) => (x.icp?.score ?? 0) * 1000 + x.pontos + (x.matriz ? 0.5 : 0);
+      if (!atual || nota(e) > nota(atual)) porRaiz.set(e.cnpj.slice(0, 8), e);
+    }
+    return new Set([...porRaiz.values()].map((e) => e.cnpj));
+  }, [empresas]);
+  const repetidos = empresas.length - melhores.size;
+  const cnpjs = umPorEmpresa && repetidos > 0 ? todos.filter((c) => melhores.has(c) || !empresas.some((e) => e.cnpj === c)) : todos;
 
   useEffect(() => {
     api<{ listas: ListaResumo[] }>('/api/listas').then((d) => setListas(d.listas)).catch(() => {});
@@ -62,6 +77,12 @@ export function ModalSalvarLista({ cnpjs, filtros, nomeSugerido, onFechar, onSal
               {listas.map((l) => <option key={l.id} value={l.id}>{l.nome} ({l.quantidade})</option>)}
             </select>
           </>
+        )}
+        {repetidos > 0 && (
+          <label className="check" style={{ marginTop: 10 }}>
+            <input type="checkbox" checked={umPorEmpresa} onChange={(e) => setUmPorEmpresa(e.target.checked)} />
+            Manter só um estabelecimento por empresa ({repetidos} filia{repetidos === 1 ? 'l' : 'is'}/matriz da mesma empresa {repetidos === 1 ? 'seria removida' : 'seriam removidas'})
+          </label>
         )}
         <p className="mudo">As empresas salvas entram na base de prospecção com status “Novo lead” e passam a ser sinalizadas como já existentes em novas buscas.</p>
         {erro && <div className="erro-box">{erro}</div>}

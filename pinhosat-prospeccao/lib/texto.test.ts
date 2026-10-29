@@ -102,3 +102,18 @@ test('ICP: score ponderado, eliminatórios e filtros por faixa entram na consult
   // Soma dos pesos padrão + os definidos: segmento 3, porte 2, capital 1, idade 1, rntrc 2, localização 2, contato 1 = 12
   assert.match(sql, /\* 100\.0 \/ 12/);
 });
+
+test('CNPJ: dígito verificador e extração de texto livre', async () => {
+  const { cnpjValido, extrairCnpjs } = await import('./cnpj');
+  assert.ok(cnpjValido('11222333000181'));
+  assert.ok(!cnpjValido('11222333000182'));
+  assert.ok(!cnpjValido('11111111111111'));
+  const r = extrairCnpjs('Cliente;CNPJ\nTransX;11.222.333/0001-81\nErrado;11.222.333/0001-82\nDup;11222333000181');
+  assert.deepEqual(r.validos, ['11222333000181']);
+  assert.deepEqual(r.invalidos, ['11222333000182']);
+});
+
+test('um lead por empresa usa distinct on pela raiz do CNPJ', () => {
+  assert.match(montarConsulta({ umPorEmpresa: true }).sql, /distinct on \(cnpj_basico\)/);
+  assert.doesNotMatch(montarConsulta({}).sql, /distinct on/);
+});

@@ -2,7 +2,7 @@ import type { NivelPotencial } from './status';
 
 export type ModoSegmento = 'principal' | 'amplo';
 export type FiltroProspeccao = 'todas' | 'fora_da_base' | 'nao_contatadas' | 'na_base';
-export type Ordenacao = 'icp' | 'potencial' | 'cidade' | 'segmento' | 'porte' | 'razao_social' | 'abertura' | 'capital';
+export type Ordenacao = 'amostra' | 'icp' | 'potencial' | 'cidade' | 'segmento' | 'porte' | 'razao_social' | 'abertura' | 'capital';
 
 export interface FiltrosBusca {
   texto?: string;                 // nome, CNPJ ou atividade (descrição do CNAE)
@@ -28,6 +28,8 @@ export interface FiltrosBusca {
   somenteRntrcAtivo?: boolean;
   prospeccao?: FiltroProspeccao;
   excluirNaoProspectar?: boolean; // padrão: true (respeita pedidos de não contato)
+  excluirClientes?: boolean;      // padrão: true (empresas que já são clientes não entram na prospecção)
+  umPorEmpresa?: boolean;         // mantém só o melhor estabelecimento de cada CNPJ raiz
   potencial?: NivelPotencial[];
   icpId?: number;                 // perfil de ICP usado no score (padrão: o perfil marcado como padrão)
   icpFaixas?: ('A' | 'B' | 'C' | 'D')[];
@@ -35,6 +37,7 @@ export interface FiltrosBusca {
   limite?: number;
   pagina?: number;
   cnpjs?: string[];               // uso interno: carregar empresas específicas (listas, exportação)
+  comAderencias?: boolean;        // uso interno: devolve a aderência de cada critério do ICP (calibração)
 }
 
 export const LIMITE_MAXIMO = 5000;
@@ -86,6 +89,8 @@ export function sanitizarFiltros(raw: unknown): FiltrosBusca {
     somenteRntrcAtivo: bool(r.somenteRntrcAtivo),
     prospeccao: oneOf(r.prospeccao, ['todas', 'fora_da_base', 'nao_contatadas', 'na_base'] as const),
     excluirNaoProspectar: bool(r.excluirNaoProspectar),
+    excluirClientes: bool(r.excluirClientes),
+    umPorEmpresa: bool(r.umPorEmpresa),
     potencial: arr(r.potencial, (x) => oneOf(x, ['alto', 'medio', 'verificar'] as const) ?? null),
     icpId: int(r.icpId) ?? undefined,
     icpFaixas: arr(r.icpFaixas, (x) => oneOf(x, ['A', 'B', 'C', 'D'] as const) ?? null),

@@ -13,6 +13,8 @@ contatar a mesma empresa duas vezes.
 | Busca | Texto livre (nome, CNPJ, atividade), segmentos (vários ao mesmo tempo), CNAEs avulsos, UF, regiões, cidades, CEP, situação cadastral, porte, matriz/filial, tempo de atividade, capital social, excluir MEI |
 | Filtros comerciais | Com telefone, com celular, com e-mail, com e-mail de domínio próprio, com site verificado, RNTRC ativo (ANTT), potencial, fora da base / não contatadas |
 | Score ICP | Perfis de cliente ideal configuráveis (um por produto), score 0–100 por aderência ponderada, faixas A/B/C/D, eliminatórios e detalhamento por critério |
+| Calibração do ICP | Importa a carteira de clientes (CNPJs em qualquer formato), compara clientes × “sem interesse” (ou × amostra da base), mostra conversão por faixa e sugere pesos aplicáveis com um clique |
+| Um lead por empresa | Opção na busca e ao salvar listas: mantém só o melhor estabelecimento de cada CNPJ raiz |
 | Potencial de frota | Pontuação **explicável** (cada ponto tem um motivo visível) e níveis Alto / Médio / A verificar |
 | Listas | Selecionar, remover, salvar com nome, adicionar a listas existentes, aviso de duplicados por CNPJ e por grupo (matriz/filial) |
 | Exportação | Excel (.xlsx) e CSV, com escolha dos campos e registro de cada exportação |
@@ -75,6 +77,7 @@ components/          tabela de resultados, modais de exportação e de lista
 lib/busca.ts         montagem da consulta + pontuação de potencial (fonte única das regras)
 lib/classificacao.ts classificação pré-calculada empresa × segmento
 lib/icp.ts           perfis de cliente ideal: validação e expressões do score
+lib/calibracao.ts    análise do ICP com resultados reais e sugestão de pesos
 lib/campos.ts        campos exportáveis
 db/migrations/       schema SQL e segmentos iniciais
 scripts/             importadores (Receita Federal, RNTRC) e regiões iniciais
@@ -104,6 +107,21 @@ Eliminatórios configuráveis (MEI, situação não ativa, sem telefone) zeram o
 Vêm três perfis prontos: *Rastreamento e telemetria — frotas médias* (padrão), *Câmeras de baú — entregas urbanas*
 e *Videomonitoramento — passageiros e cargas perigosas*. A busca, as listas e a exportação permitem trocar o perfil, e
 o score de cada empresa é recalculado na hora.
+
+### Calibração (tela *Análise do ICP*)
+
+1. **Importe a carteira atual.** Cole os CNPJs ou envie um .csv/.txt. Os CNPJs são validados pelo dígito
+   verificador, e os encontrados passam a “Cliente”. Por padrão, clientes saem das buscas de prospecção.
+2. **Registre o resultado de cada lead** (“Cliente”, “Sem interesse”) durante a prospecção.
+3. **Leia a análise.** Para cada critério, o sistema compara a aderência média dos clientes com a dos “Sem
+   interesse” (a partir de 15 casos) ou com uma amostra estável de 2.000 empresas da base do ICP. O peso sugerido é
+   proporcional a essa diferença. A tela também mostra:
+   - a cobertura: % dos clientes e % da base em A/B, hoje e com os pesos sugeridos;
+   - a conversão por faixa;
+   - os segmentos dos clientes, apontando os que estão fora do ICP.
+4. Com pelo menos 10 clientes na base, o botão **Aplicar pesos sugeridos** atualiza o perfil.
+
+É uma heurística transparente (diferença de médias), não um modelo estatístico. Com poucos casos, serve de indicação.
 
 ## Como a pontuação de potencial de frota funciona
 

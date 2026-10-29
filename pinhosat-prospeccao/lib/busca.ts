@@ -159,6 +159,9 @@ export function montarConsulta(f: FiltrosBusca, regioesMunicipios: string[] = []
   if (f.prospeccao === 'nao_contatadas') where.push(`(p.cnpj is null or p.status in ('novo','nao_contatado'))`);
   if (f.prospeccao === 'na_base') where.push(`(p.cnpj is not null or ${emLista})`);
   if (f.excluirNaoProspectar ?? !f.cnpjs) where.push(`coalesce(p.status, '') <> 'nao_prospectar'`);
+  if (f.excluirClientes ?? !f.cnpjs) where.push(`coalesce(p.status, '') <> 'cliente'`);
+  // Amostra: pré-seleciona ~1/8 da base de forma pseudoaleatória estável antes do cálculo pesado.
+  if (f.ordenarPor === 'amostra') where.push(`substr(md5(e.cnpj), 1, 1) in ('0', '1')`);
 
   // --- Pontuação ---
   const crit = criteriosPontuacao();
@@ -173,6 +176,7 @@ export function montarConsulta(f: FiltrosBusca, regioesMunicipios: string[] = []
   const filtroPotencial = filtrosFinais.length ? `where ${filtrosFinais.join(' and ')}` : '';
 
   const ordem: Record<string, string> = {
+    amostra: `md5(cnpj)`, // ordem pseudoaleatória estável (amostras para a calibração do ICP)
     icp: ic ? `icp_score desc, pontos desc, razao_social` : `pontos desc, razao_social`,
     potencial: `case nivel when 'alto' then 0 when 'medio' then 1 else 2 end, pontos desc, razao_social`,
     cidade: `municipio_nome, razao_social`,
@@ -219,15 +223,22 @@ with base as materialized (
          when pontos >= ${LIMIARES.medio} then 'medio' else 'verificar' end as nivel,
     ${ic ? faixaSql('icp_score') : 'null::text'} as icp_faixa
   from clas
+), sel as (
+  ${f.umPorEmpresa
+    // Um lead por empresa: o estabelecimento de melhor score de cada CNPJ raiz (matriz no empate).
+    ? `select distinct on (cnpj_basico) fin.* from fin ${filtroPotencial}
+       order by cnpj_basico, icp_score desc nulls last, pontos desc, matriz desc, cnpj`
+    : `select fin.* from fin ${filtroPotencial}`}
 ), pag as (
-  select fin.*, count(*) over () as total from fin ${filtroPotencial}
+  select sel.*, count(*) over () as total from sel
   order by ${orderBy}
   limit ${limite} offset ${pagina * limite}
 )
 select pag.*,
   -- Motivos só para as linhas da página (os mesmos critérios da soma de pontos).
   (select ${motivos} from (select pag.*) b, (select pag.segmento as nome, pag.segmento_prioridade as prioridade) s) as motivos,
-  ${ic ? `(select ${ic.detalhe} from (select pag.*) b)` : `'{}'::text[]`} as icp_detalhe,
+  ${ic ? `(select ${ic.detalhe} from (select pag.*) b)` : `'{}'::text[]`} as icp_detalhe,${ic && f.comAderencias ? `
+  (select array[${ic.aderencias.map((a) => `(${a.expr})::float8`).join(', ') || 'null::float8'}] from (select pag.*) b) as icp_aderencias,` : ''}
   (select coalesce(json_agg(json_build_object('id', l.id, 'nome', l.nome) order by l.nome), '[]')
      from lista_itens li join listas l on l.id = li.lista_id where li.cnpj = pag.cnpj) as listas,
   (select coalesce(json_agg(json_build_object('tipo', c.tipo, 'valor', c.valor, 'fonte', c.fonte, 'verificado', c.verificado)), '[]')

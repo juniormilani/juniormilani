@@ -15,6 +15,7 @@ export function Navegacao() {
     ['/', 'Buscar empresas'],
     ['/listas', 'Listas salvas'],
     ['/acompanhamento', 'Acompanhamento'],
+    ['/analise', 'Análise do ICP'],
     ['/configuracoes', 'ICP e segmentos'],
   ];
   const rf = base.find((b) => b.fonte === 'receita_federal');

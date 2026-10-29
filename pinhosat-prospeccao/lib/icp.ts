@@ -96,7 +96,11 @@ export interface IcpCarregado extends Icp {
   municipiosIdeais: string[]; // municípios das regiões do critério de localização
 }
 
+export type ChaveCriterio = 'segmentos' | 'porte' | 'capital' | 'idade' | 'estabelecimentos' | 'rntrc' | 'localizacao' | 'contato';
+export const CHAVES_CRITERIOS: ChaveCriterio[] = ['segmentos', 'porte', 'capital', 'idade', 'estabelecimentos', 'rntrc', 'localizacao', 'contato'];
+
 interface CriterioSql {
+  chave: ChaveCriterio;
   nome: string;
   peso: number;
   aderencia: string;  // expressão numérica entre 0 e 1 (colunas da CTE base com alias b)
@@ -110,7 +114,7 @@ function criteriosSql(icp: IcpCarregado, p: Params): CriterioSql[] {
   const lista: CriterioSql[] = [];
   if (c.segmentos.peso && c.segmentos.ids.length) {
     lista.push({
-      nome: 'Segmento', peso: c.segmentos.peso,
+      chave: 'segmentos', nome: 'Segmento', peso: c.segmentos.peso,
       aderencia: `case b.icp_seg_tipo when 1 then 1 when 2 then 0.5 when 3 then 0.5 else 0 end`,
       descricao: `case b.icp_seg_tipo when 1 then 'CNAE principal em segmento do ICP' when 2 then 'segmento do ICP só como CNAE secundário'
         when 3 then 'nome indica segmento do ICP' else 'fora dos segmentos do ICP' end`,
@@ -118,7 +122,7 @@ function criteriosSql(icp: IcpCarregado, p: Params): CriterioSql[] {
   }
   if (c.porte.peso && c.porte.valores.length) {
     lista.push({
-      nome: 'Porte', peso: c.porte.peso,
+      chave: 'porte', nome: 'Porte', peso: c.porte.peso,
       aderencia: `case when b.porte = any(${p.add(c.porte.valores)}::char(2)[]) then 1 else 0 end`,
       descricao: `'porte ' || case b.porte when '01' then 'ME' when '03' then 'EPP' when '05' then 'Demais' else 'não informado' end`,
     });
@@ -126,7 +130,7 @@ function criteriosSql(icp: IcpCarregado, p: Params): CriterioSql[] {
   if (c.capital.peso && c.capital.minimo > 0) {
     const min = p.add(c.capital.minimo);
     lista.push({
-      nome: 'Capital social', peso: c.capital.peso,
+      chave: 'capital', nome: 'Capital social', peso: c.capital.peso,
       aderencia: `least(coalesce(b.capital_social, 0) / ${min}::numeric, 1)`,
       descricao: `case when b.capital_social >= ${min}::numeric then ${txt(`a partir de ${brl(c.capital.minimo)}`)}
         else ${txt(`abaixo de ${brl(c.capital.minimo)}`)} end`,
@@ -135,21 +139,21 @@ function criteriosSql(icp: IcpCarregado, p: Params): CriterioSql[] {
   if (c.idade.peso && c.idade.anosMinimo > 0) {
     const anos = `coalesce(extract(year from age(current_date, b.data_inicio)), 0)`;
     lista.push({
-      nome: 'Tempo de atividade', peso: c.idade.peso,
+      chave: 'idade', nome: 'Tempo de atividade', peso: c.idade.peso,
       aderencia: `least(${anos} / ${p.add(c.idade.anosMinimo)}::numeric, 1)`,
       descricao: `${anos}::int || ' anos de atividade'`,
     });
   }
   if (c.estabelecimentos.peso) {
     lista.push({
-      nome: 'Estrutura', peso: c.estabelecimentos.peso,
+      chave: 'estabelecimentos', nome: 'Estrutura', peso: c.estabelecimentos.peso,
       aderencia: `least((b.filiais + 1) / ${p.add(c.estabelecimentos.minimo)}::numeric, 1)`,
       descricao: `(b.filiais + 1) || case when b.filiais = 0 then ' estabelecimento' else ' estabelecimentos' end`,
     });
   }
   if (c.rntrc.peso) {
     lista.push({
-      nome: 'Frota (RNTRC)', peso: c.rntrc.peso,
+      chave: 'rntrc', nome: 'Frota (RNTRC)', peso: c.rntrc.peso,
       aderencia: `case when b.rntrc_situacao = 'ATIVO' then 1 when b.rntrc_situacao is not null then 0.3 else 0 end`,
       descricao: `case when b.rntrc_situacao = 'ATIVO' then 'RNTRC ativo' when b.rntrc_situacao is not null
         then 'RNTRC ' || lower(b.rntrc_situacao) else 'sem RNTRC' end`,
@@ -157,7 +161,7 @@ function criteriosSql(icp: IcpCarregado, p: Params): CriterioSql[] {
   }
   if (c.localizacao.peso && icp.municipiosIdeais.length) {
     lista.push({
-      nome: 'Localização', peso: c.localizacao.peso,
+      chave: 'localizacao', nome: 'Localização', peso: c.localizacao.peso,
       aderencia: `case when b.municipio_codigo = any(${p.add(icp.municipiosIdeais)}::char(4)[]) then 1 else 0 end`,
       descricao: `case when b.municipio_codigo = any(${p.add(icp.municipiosIdeais)}::char(4)[]) then 'dentro da região do ICP'
         else 'fora da região do ICP' end`,
@@ -165,7 +169,7 @@ function criteriosSql(icp: IcpCarregado, p: Params): CriterioSql[] {
   }
   if (c.contato.peso) {
     lista.push({
-      nome: 'Contato', peso: c.contato.peso,
+      chave: 'contato', nome: 'Contato', peso: c.contato.peso,
       aderencia: `(case when b.tem_telefone then 0.5 else 0 end + case when b.tem_celular then 0.25 else 0 end
         + case when b.email_corporativo then 0.25 else 0 end)`,
       descricao: `coalesce(nullif(concat_ws(', ', case when b.tem_telefone then 'telefone' end,
@@ -196,7 +200,12 @@ export function expressoesIcp(icp: IcpCarregado, p: Params) {
     ${elim.map((x) => `case when ${x.cond} then ${txt(`Eliminatório: ${x.texto} (score zerado)`)} end`).concat(
       crit.map((c) => `${txt(c.nome + ': ')} || (${c.descricao}) || ' — ' || round(100 * (${c.aderencia}))::int || '% × peso ${c.peso}'`),
     ).join(',\n    ')}], null)`;
-  return { score, detalhe, segmentosIcp: icp.criterios.segmentos.peso ? icp.criterios.segmentos.ids : [] };
+  return {
+    score, detalhe,
+    segmentosIcp: icp.criterios.segmentos.peso ? icp.criterios.segmentos.ids : [],
+    // Aderência de cada critério (0–1), usada na calibração do perfil.
+    aderencias: crit.map((c) => ({ chave: c.chave, nome: c.nome, expr: c.aderencia })),
+  };
 }
 
 export function faixaSql(score: string): string {

@@ -144,6 +144,13 @@ O primeiro resultado é uma empresa de efluentes de Canoas com CNAE principal 37
 - **Score ICP**: perfis configuráveis com 8 critérios ponderados (segmento, porte, capital, tempo de atividade,
   estrutura, RNTRC, localização, contato) e eliminatórios. Score de 0 a 100, faixas A–D, detalhamento por critério,
   filtro e ordenação por faixa, e troca de perfil na busca, nas listas e na exportação.
+- **Calibração do ICP:**
+  - importação da carteira de clientes atual (CNPJs validados), que tira os clientes da prospecção;
+  - análise que compara clientes × “sem interesse” (ou × amostra da base) critério a critério;
+  - conversão por faixa e cobertura (% dos clientes e % da base em A/B);
+  - segmentos dos clientes que estão fora do ICP;
+  - pesos sugeridos aplicáveis com um clique.
+- **Um lead por empresa:** na busca e ao salvar a lista, mantém só o melhor estabelecimento de cada CNPJ raiz.
 - Pontuação de potencial de frota explicável e ordenação por ICP, potencial, cidade, segmento, porte, capital ou
   abertura.
 - Seleção, remoção individual, quantidade de resultados (até 5.000 por página) e paginação.
@@ -158,17 +165,11 @@ O primeiro resultado é uma empresa de efluentes de Canoas com CNAE principal 37
 - Atualização mensal por comando. A reimportação preserva listas e histórico.
 
 ### Fora do MVP (fases seguintes, em ordem de retorno esperado)
-- **Calibrar o ICP com resultados reais:** relatório de conversão por faixa e critério a partir dos status
-  “Cliente” / “Sem interesse”, com sugestão de pesos.
-- **Importar a carteira atual de clientes** (CNPJs): tirá-la da prospecção e usá-la como referência para o ICP
-  (“empresas parecidas com nossos clientes”).
 - **Sinais de compra mensais:** comparar uma competência da Receita com a anterior para detectar nova filial,
   aumento de capital, mudança de porte, novo RNTRC e empresa recém-aberta em segmento do ICP. Vira a lista
   “leads quentes do mês”.
 - **Distribuição de leads por vendedor:** responsável, fila por ICP, bloqueio para dois vendedores não abordarem
   a mesma empresa e metas.
-- **Um lead por empresa:** opção de manter só o melhor estabelecimento (matriz ou maior score) de cada CNPJ raiz
-  ao salvar a lista.
 - Enriquecimento pago de contatos (API comercial ou Google Places) e confirmação automática de WhatsApp.
 - Integração com WhatsApp Business API e automação de follow-up.
 - Integração com CRM (RD Station, Pipedrive, HubSpot) ou com o PinhoSystem.

@@ -16,7 +16,7 @@ interface Opcoes { segmentos: Segmento[]; regioes: Regiao[]; ufs: string[]; muni
 
 const PADRAO: FiltrosBusca = {
   ufs: ['RS'], situacoes: ['02'], modoSegmento: 'amplo', excluirMei: true, prospeccao: 'todas',
-  ordenarPor: 'icp', limite: 200, segmentos: [], regioes: [], municipios: [], portes: [], potencial: [], icpFaixas: [],
+  ordenarPor: 'icp', limite: 200, umPorEmpresa: true, excluirClientes: true, segmentos: [], regioes: [], municipios: [], portes: [], potencial: [], icpFaixas: [],
 };
 const CHAVE = 'pinhosat.filtros';
 const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
@@ -288,6 +288,8 @@ export function Busca() {
             </select>
           </div>
         </div>
+        <label className="check"><input type="checkbox" checked={f.umPorEmpresa ?? false} onChange={(e) => set('umPorEmpresa', e.target.checked)} /> Um estabelecimento por empresa (o de melhor score)</label>
+        <label className="check"><input type="checkbox" checked={f.excluirClientes ?? true} onChange={(e) => set('excluirClientes', e.target.checked)} /> Excluir quem já é cliente</label>
         <p className="mudo">Empresas marcadas como “Não prospectar” nunca aparecem nas buscas.</p>
         <button className="btn primario grande" onClick={() => gerar()} disabled={carregando}>{carregando ? 'Buscando…' : 'Gerar lista'}</button>
         <button className="btn pequeno" style={{ marginTop: 8 }} onClick={() => { setF(PADRAO); setCnaesTexto(''); }}>Limpar filtros</button>
@@ -349,7 +351,7 @@ export function Busca() {
       </section>
       {modal === 'exportar' && <ModalExportar cnpjs={selecionadas} icpId={res?.icp?.id} onFechar={() => setModal(null)} />}
       {modal === 'salvar' && (
-        <ModalSalvarLista cnpjs={selecionadas} filtros={filtrosUsados} nomeSugerido={nomeSugerido}
+        <ModalSalvarLista cnpjs={selecionadas} empresas={visiveis.filter((e) => sel.has(e.cnpj))} filtros={filtrosUsados} nomeSugerido={nomeSugerido}
           onFechar={() => setModal(null)} onSalvo={(m) => { mostrar(m); gerar(f.pagina ?? 0); }} />
       )}
       <Toast />
