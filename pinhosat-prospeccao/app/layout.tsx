@@ -8,9 +8,15 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+// Aplica o tema escolhido antes da primeira pintura (sem "piscar" claro → escuro).
+const SCRIPT_TEMA = `try{var t=localStorage.getItem('pinhosat.tema');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t)}catch(e){}`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
+      </head>
       <body>
         <Navegacao />
         <main>{children}</main>
