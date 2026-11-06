@@ -11,3 +11,9 @@ registrar o MCP server do REA (`npx rea-agents setup`) ou instalar o plugin
 Claude Code do REA.
 
 Para atualizar, copie novamente a pasta do upstream e ajuste o commit acima.
+
+## MCP server
+
+O `.mcp.json` na raiz do repositório registra o servidor `rea` via
+`npx -y rea-agents@6.8.0 mcp` (versão fixada). Para atualizar, troque a versão
+lá e aqui. O Claude Code pede aprovação antes de ativar MCP servers de projeto.
